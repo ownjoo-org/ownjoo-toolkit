@@ -1,13 +1,14 @@
 """Stream output utilities for writing to stdout and stderr.
 
 Provides a simple Output class for writing messages to standard output and error streams,
-with support for colored output using ANSI escape codes.
+with support for colored output using ANSI escape codes and chainable colored text builder.
 """
 
 import sys
 from typing import Any, Optional, TextIO
 
 from ownjoo_utils.console.colors import Color
+from ownjoo_utils.console.colored_text import ColoredText
 
 
 class Output:
@@ -261,3 +262,28 @@ class Output:
             flush: Whether to force flush the stream (default: False).
         """
         self.err_colored(*args, color=Color.YELLOW, sep=sep, end=end, flush=flush)
+
+    def segment(self) -> ColoredText:
+        """Create a new chainable ColoredText builder bound to this output.
+
+        Returns a ColoredText instance that outputs to this Output's streams
+        when .out() or .err() is called.
+
+        Returns:
+            A new ColoredText instance.
+
+        Example:
+            >>> output = Output()
+            >>> output.segment().red("ERROR: ").white("critical failure").out()
+            >>> output.segment().yellow("WARNING").cyan(" - deprecated").err()
+
+            Can also chain and build complex multi-color lines:
+            >>> (output.segment()
+            ...     .bold("Status: ")
+            ...     .green("OK")
+            ...     .reset(" (")
+            ...     .cyan("2.5s")
+            ...     .reset(")")
+            ...     .out())
+        """
+        return ColoredText(stdout=self.stdout, stderr=self.stderr)
