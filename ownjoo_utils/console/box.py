@@ -96,7 +96,8 @@ class Box:
         Returns:
             Multi-line string with box drawn around content.
         """
-        tl, tr, bl, br, top, bot, left, right, cross = border_chars(self.style)
+        chars = border_chars(self.style)
+        tl, tr, bl, br, top, bot, left, right, cross = chars[:9]  # Use first 9 chars for box rendering
 
         box_width = self._get_box_width()
         inner_width = box_width - 2  # Account for left/right borders

@@ -188,19 +188,22 @@ class Table:
             return ""
 
         widths = self._calculate_column_widths()
-        tl, tr, bl, br, top, bot, left, right, cross = border_chars(self.style)
+        chars = border_chars(self.style)
+        tl, tr, bl, br, top, bot, left, right, cross, top_cross, sep_left, sep_cross, sep_right, bottom_cross = chars
 
         lines = []
 
         # Top border
-        border_line = self._make_border_line(tl, tr, top, cross, widths)
-        lines.append(border_line)
+        top_border = self._make_border_line(tl, tr, top, top_cross, widths)
+        lines.append(top_border)
 
         # Headers
         if self.headers:
             header_line = self._make_data_line(self.headers, widths, left, right)
             lines.append(header_line)
-            lines.append(border_line)
+            # Header separator with different junction characters
+            header_sep = self._make_border_line(sep_left, sep_right, top, sep_cross, widths)
+            lines.append(header_sep)
 
         # Rows
         for row in self.rows:
@@ -208,7 +211,7 @@ class Table:
             lines.append(data_line)
 
         # Bottom border
-        bottom_border = self._make_border_line(bl, br, bot, cross, widths)
+        bottom_border = self._make_border_line(bl, br, bot, bottom_cross, widths)
         lines.append(bottom_border)
 
         return "\n".join(lines)
@@ -216,7 +219,7 @@ class Table:
     def _make_border_line(
         self, tl: str, tr: str, fill: str, cross: str, widths: Dict[int, int]
     ) -> str:
-        """Create a border line."""
+        """Create a border line with specified corners and junctions."""
         segments = [tl]
         for i in range(self.columns):
             width = widths.get(i, 10)

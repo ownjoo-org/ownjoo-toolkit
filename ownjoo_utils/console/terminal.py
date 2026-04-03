@@ -187,29 +187,33 @@ def truncate_visible(text: str, width: int, suffix: str = "...") -> str:
     return stripped[:target_length] + suffix
 
 
-def border_chars(style: str) -> Tuple[str, str, str, str, str, str, str, str, str]:
+def border_chars(style: str) -> Tuple[str, str, str, str, str, str, str, str, str, str, str, str, str]:
     """Get border characters for a given style.
 
-    Returns the 9 border characters needed for a box:
-    (top_left, top_right, bottom_left, bottom_right, top, bottom, left, right, cross)
+    Returns the 13 border characters needed for a table:
+    (tl, tr, bl, br, top, bottom, left, right, cross, top_cross, sep_left, sep_cross, sep_right, bottom_cross)
+
+    The first 9 are for boxes (top-left, top-right, bottom-left, bottom-right, top, bottom, left, right, cross).
+    The last 4 are for table header separators (top_cross, sep_left, sep_cross, sep_right, bottom_cross).
 
     Args:
         style: Border style ('ascii', 'rounded', 'double', 'single', 'none', etc.).
 
     Returns:
-        Tuple of (tl, tr, bl, br, top, bottom, left, right, cross).
+        Tuple of (tl, tr, bl, br, top, bottom, left, right, cross, top_cross, sep_left, sep_cross, sep_right, bottom_cross).
 
     Example:
-        >>> tl, tr, bl, br, top, bot, left, right, cross = border_chars('rounded')
-        >>> print(f"{tl}{top}{tr}")  # ╭─╮
+        >>> chars = border_chars('rounded')
+        >>> print(f"{chars[0]}{chars[4]}{chars[1]}")  # ╭─╮
     """
     styles = {
-        "ascii": ("+", "+", "+", "+", "-", "-", "|", "|", "+"),
-        "rounded": ("╭", "╮", "╰", "╯", "─", "─", "│", "│", "┼"),
-        "double": ("╔", "╗", "╚", "╝", "═", "═", "║", "║", "╬"),
-        "single": ("┌", "┐", "└", "┘", "─", "─", "│", "│", "┼"),
-        "solid": ("█", "█", "█", "█", "█", "█", "█", "█", "█"),
-        "none": (" ", " ", " ", " ", " ", " ", " ", " ", " "),
+        # Format: (tl, tr, bl, br, top, bottom, left, right, cross, top_cross, sep_left, sep_cross, sep_right, bottom_cross)
+        "ascii": ("+", "+", "+", "+", "-", "-", "|", "|", "+", "+", "+", "+", "+", "+"),
+        "rounded": ("╭", "╮", "╰", "╯", "─", "─", "│", "│", "┼", "┬", "├", "┼", "┤", "┴"),
+        "double": ("╔", "╗", "╚", "╝", "═", "═", "║", "║", "╬", "╦", "╠", "╬", "╣", "╩"),
+        "single": ("┌", "┐", "└", "┘", "─", "─", "│", "│", "┼", "┬", "├", "┼", "┤", "┴"),
+        "solid": ("█", "█", "█", "█", "█", "█", "█", "█", "█", "█", "█", "█", "█", "█"),
+        "none": (" ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " "),
     }
 
     return styles.get(style, styles["ascii"])
@@ -233,5 +237,6 @@ def horizontal_line(width: int, style: str = "ascii", char: Optional[str] = None
     if char:
         return char * width
 
-    _, _, _, _, line_char, _, _, _, _ = border_chars(style)
+    chars = border_chars(style)
+    line_char = chars[4]  # 5th element is the top/horizontal line character
     return line_char * width
