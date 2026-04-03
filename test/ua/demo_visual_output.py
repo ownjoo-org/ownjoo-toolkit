@@ -5,8 +5,14 @@ Run this script to see what the formatted output looks like when rendered.
 Useful for visual verification and user acceptance testing.
 
 Usage:
-    python test/ua/demo_visual_output.py
+    PYTHONIOENCODING=utf-8 python test/ua/demo_visual_output.py
 """
+
+import sys
+import os
+
+# Add parent directory to path for local imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from ownjoo_utils import (
     Box,
@@ -27,6 +33,52 @@ def print_section(title):
     print("\n" + "=" * 70)
     print(f"  {title}")
     print("=" * 70 + "\n")
+
+
+def colored_bordered_box(box, color):
+    """Color all box borders (top, bottom, sides) while keeping text plain.
+
+    Args:
+        box: Box instance to color
+        color: ANSI color code (e.g., Color.BLUE, Color.GREEN)
+
+    Returns:
+        String with colored borders and plain text
+    """
+    lines = str(box).split('\n')
+    result = []
+
+    # Characters used for borders (ASCII and Unicode)
+    border_chars = set('+-═║╔╗╚╝╭╮╰╯┌┐└┘├┤┬┴┼│─')
+
+    for line in lines:
+        if not line:
+            result.append(line)
+            continue
+
+        # Check if this is a border line (only contains border chars and spaces)
+        if all(c in border_chars for c in line.strip()):
+            # Top or bottom border - color entire line
+            result.append(color + line + Color.RESET)
+        elif any(c in '|║' for c in line):
+            # Content line with side borders - color the borders, keep text plain
+            # Find the positions of the border characters (| or ║)
+            side_chars = [i for i, c in enumerate(line) if c in '|║']
+
+            if len(side_chars) >= 2:
+                first_pos = side_chars[0]
+                last_pos = side_chars[-1]
+
+                left_border = color + line[:first_pos+1] + Color.RESET
+                content = line[first_pos+1:last_pos]
+                right_border = color + line[last_pos:] + Color.RESET
+                result.append(left_border + content + right_border)
+            else:
+                result.append(line)
+        else:
+            result.append(line)
+
+    return '\n'.join(result)
 
 
 # ============================================================================
@@ -121,10 +173,10 @@ except UnicodeEncodeError:
 # TABLES
 # ============================================================================
 
-print_section("6. Tables with Auto-Detection")
+print_section("6. Tables with Double-Line Borders and Auto-Detection")
 
 output.out("Table with explicit headers:")
-table1 = Table(headers=["Task", "Status", "Duration"], columns=3, style="ascii")
+table1 = Table(headers=["Task", "Status", "Duration"], columns=3, style="double")
 table1.add_row("Build", "OK", "2.5s")
 table1.add_row("Tests", "OK", "5.2s")
 table1.add_row("Deploy", "Failed", "-")
@@ -136,7 +188,7 @@ data = [
     {"name": "Bob", "role": "User", "status": "Active"},
     {"name": "Charlie", "role": "Viewer", "status": "Inactive"},
 ]
-table2 = Table(style="ascii")
+table2 = Table(style="double")
 table2.add_rows(data)
 print(table2)
 
@@ -146,7 +198,7 @@ settings = [
     ("timeout", "30s"),
     ("retries", "3"),
 ]
-table3 = Table(style="ascii")
+table3 = Table(style="double")
 table3.add_rows(settings)
 print(table3)
 
@@ -154,45 +206,45 @@ print(table3)
 # BOXES
 # ============================================================================
 
-print_section("7. Boxes with Different Styles")
+print_section("7. Double-Line Boxes with Colors")
 
-output.out("ASCII box:")
-box1 = Box(style="ascii")
-box1.add_line("Simple box with plain ASCII borders")
-print(box1)
+output.out("Double-line box:")
+box1 = Box(style="double")
+box1.add_line("Simple box with double-line borders")
+print(colored_bordered_box(box1, Color.CYAN))
 
 output.out("\nBox with padding:")
-box2 = Box(style="ascii", padding=2)
+box2 = Box(style="double", padding=2)
 box2.add_line("This box has extra padding for spacing")
-print(box2)
+print(colored_bordered_box(box2, Color.BLUE))
 
 output.out("\nBox with fixed width:")
-box3 = Box(style="ascii", width=50)
+box3 = Box(style="double", width=50)
 box3.add_line("Fixed width box")
 box3.add_line("Multiple lines")
-print(box3)
+print(colored_bordered_box(box3, Color.GREEN))
 
 # ============================================================================
 # INTEGRATED EXAMPLES
 # ============================================================================
 
-print_section("8. Integrated: Status in Table")
+print_section("8. Integrated: Colored Status Badges in Table")
 
-table_status = Table(headers=["Component", "Status"], columns=2, style="ascii")
+table_status = Table(headers=["Component", "Status"], columns=2, style="double")
 table_status.add_row("API Server", status_badge("OK", "ok"))
 table_status.add_row("Database", status_badge("OK", "ok"))
 table_status.add_row("Cache", status_badge("SLOW", "warning"))
 table_status.add_row("Queue", status_badge("DOWN", "error"))
 print(table_status)
 
-print_section("9. Integrated: Colored Status in Box")
+print_section("9. Integrated: Colored Borders with Colored Status")
 
-box_status = Box(style="ascii")
+box_status = Box(style="double")
 box_status.add_line(status_line("Build", "OK", color=Color.GREEN))
 box_status.add_line(status_line("Tests", "OK", color=Color.GREEN))
 box_status.add_line(status_line("Lint", "OK", color=Color.GREEN))
 box_status.add_line(status_line("Deploy", "Failed", color=Color.RED))
-print(box_status)
+print(colored_bordered_box(box_status, Color.YELLOW))
 
 print_section("10. Integrated: Complex Colored Output")
 
@@ -212,7 +264,7 @@ output.out("  • Basic colored output (red, green, yellow, blue)")
 output.out("  • Combined colors and styles (bold, dim, backgrounds)")
 output.out("  • Chainable ColoredText for multi-segment coloring")
 output.out("  • Status indicators (lines, badges, progress bars)")
-output.out("  • Tables with auto-detection (dict, tuple, list)")
-output.out("  • Boxes with styling and padding")
-output.out("  • Integration of colors with formatters")
+output.out("  • Tables with double-line borders and auto-detection")
+output.out("  • Boxes with double-line borders, coloring, padding, and fixed width")
+output.out("  • Integration of colors with formatters and borders")
 print()
