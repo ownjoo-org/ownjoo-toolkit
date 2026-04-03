@@ -34,25 +34,30 @@ def colored_bordered_box(box, color):
     lines = str(box).split('\n')
     result = []
 
+    # Characters used for borders (ASCII and Unicode)
+    border_chars = set('+-═║╔╗╚╝╭╮╰╯┌┐└┘├┤┬┴┼│─')
+
     for line in lines:
         if not line:
             result.append(line)
             continue
 
-        # Check if this is a border line (only contains +, -, and spaces)
-        if all(c in '+-' for c in line.strip()):
+        # Check if this is a border line (only contains border chars and spaces)
+        if all(c in border_chars for c in line.strip()):
             # Top or bottom border - color entire line
             result.append(color + line + Color.RESET)
-        elif '|' in line:
+        elif any(c in '|║' for c in line):
             # Content line with side borders - color the borders, keep text plain
-            # Find the positions of the | characters
-            first_pipe = line.find('|')
-            last_pipe = line.rfind('|')
+            # Find the positions of the border characters (| or ║)
+            side_chars = [i for i, c in enumerate(line) if c in '|║']
 
-            if first_pipe != -1 and last_pipe != -1:
-                left_border = color + line[:first_pipe+1] + Color.RESET
-                content = line[first_pipe+1:last_pipe]
-                right_border = color + line[last_pipe:] + Color.RESET
+            if len(side_chars) >= 2:
+                first_pos = side_chars[0]
+                last_pos = side_chars[-1]
+
+                left_border = color + line[:first_pos+1] + Color.RESET
+                content = line[first_pos+1:last_pos]
+                right_border = color + line[last_pos:] + Color.RESET
                 result.append(left_border + content + right_border)
             else:
                 result.append(line)
@@ -97,7 +102,7 @@ print("=" * 70 + "\n")
 
 # Blue box
 print("1. BLUE BORDERS:\n")
-box1 = Box(style='ascii')
+box1 = Box(style='double')
 box1.add_line('This is plain text')
 box1.add_line('The box borders are blue')
 box1.add_line('Text remains plain black')
@@ -105,7 +110,7 @@ print(blue_bordered_box(box1))
 
 # Green box
 print("\n2. GREEN BORDERS:\n")
-box2 = Box(style='ascii')
+box2 = Box(style='double')
 box2.add_line('This is plain text')
 box2.add_line('The box borders are green')
 box2.add_line('Text remains plain black')
@@ -113,7 +118,7 @@ print(green_bordered_box(box2))
 
 # Red box
 print("\n3. RED BORDERS:\n")
-box3 = Box(style='ascii')
+box3 = Box(style='double')
 box3.add_line('This is plain text')
 box3.add_line('The box borders are red')
 box3.add_line('Text remains plain black')
@@ -121,7 +126,7 @@ print(red_bordered_box(box3))
 
 # Yellow box
 print("\n4. YELLOW BORDERS:\n")
-box4 = Box(style='ascii')
+box4 = Box(style='double')
 box4.add_line('This is plain text')
 box4.add_line('The box borders are yellow')
 box4.add_line('Text remains plain black')
@@ -129,7 +134,7 @@ print(yellow_bordered_box(box4))
 
 # Cyan box
 print("\n5. CYAN BORDERS:\n")
-box5 = Box(style='ascii')
+box5 = Box(style='double')
 box5.add_line('This is plain text')
 box5.add_line('The box borders are cyan')
 box5.add_line('Text remains plain black')
@@ -165,7 +170,7 @@ print("WITH MULTIPLE LINES")
 print("=" * 70 + "\n")
 
 print("Red box with multiple lines:\n")
-box8 = Box(style='ascii')
+box8 = Box(style='double')
 box8.add_line('First line of content')
 box8.add_line('Second line of content')
 box8.add_line('Third line of content')
