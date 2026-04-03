@@ -1,9 +1,17 @@
+"""Tests for asynchronous utilities.
+
+Async utilities are planned for future development.
+Tests will be added when utilities are implemented.
+"""
 import unittest
 
 
 class TestAsyncDecorators(unittest.TestCase):
-    def test_should_async(self):
-        pass
+    """Placeholder for async decorator tests."""
+
+    def test_placeholder(self):
+        """Placeholder test. Remove when async utilities are implemented."""
+        self.assertTrue(True)
 
 
 if __name__ == '__main__':

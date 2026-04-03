@@ -209,6 +209,81 @@ class TestParsingFunctions(unittest.TestCase):
 
         # teardown
 
+    def test_should_return_none_on_str_to_list_with_empty_separator(self):
+        # setup
+        value: str = 'a,b,c'
+
+        # execute
+        actual = str_to_list(v=value, separator='')
+
+        # assess
+        self.assertEqual(value, actual)
+
+        # teardown
+
+    def test_should_return_unchanged_on_str_to_list_with_non_string(self):
+        # setup
+        expected: int = 123
+
+        # execute
+        actual = str_to_list(v=expected)
+
+        # assess
+        self.assertEqual(expected, actual)
+
+        # teardown
+
+    def test_should_handle_get_value_with_invalid_path(self):
+        # setup
+        src: dict = {'a': {'b': 'c'}}
+        expected: Optional[dict] = None
+
+        # execute
+        actual = get_value(src=src, path=['x', 'y', 'z'])
+
+        # assess
+        # When path navigation fails, post_processor (validate) is called on src
+        # validate returns None when src doesn't match expected type
+        self.assertIsNone(actual)
+
+        # teardown
+
+    def test_should_validate_none_value_with_default(self):
+        # setup
+        expected: str = 'default'
+
+        # execute
+        actual = validate(v=None, exp=str, default=expected)
+
+        # assess
+        self.assertEqual(expected, actual)
+
+        # teardown
+
+    def test_should_get_datetime_with_none_value(self):
+        # setup
+        expected: Optional[datetime] = None
+
+        # execute
+        actual = get_datetime(v=None)
+
+        # assess
+        self.assertEqual(expected, actual)
+
+        # teardown
+
+    def test_should_get_datetime_from_datetime_object(self):
+        # setup
+        expected: datetime = datetime(2024, 1, 15, 10, 30, 0)
+
+        # execute
+        actual = get_datetime(v=expected)
+
+        # assess
+        self.assertEqual(expected, actual)
+
+        # teardown
+
 
 if __name__ == '__main__':
     unittest.main()
