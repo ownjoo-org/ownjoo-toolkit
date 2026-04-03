@@ -3,7 +3,7 @@
 Centralized utilities for all ownjoo-org projects, including:
 - Type validation and data parsing (parsing module)
 - Progress logging for generators (logging module)
-- Output stream utilities (out module)
+- Terminal and console output utilities (console module)
 - Asynchronous utilities (asynchronous module, in development)
 
 Usage:
@@ -12,8 +12,8 @@ Usage:
     from ownjoo_utils import Output
 """
 
+from ownjoo_utils.console import Output
 from ownjoo_utils.logging import timed_async_generator, timed_generator
-from ownjoo_utils.out import Output
 from ownjoo_utils.parsing import validate, get_datetime, get_value, str_to_list
 
 __all__ = [

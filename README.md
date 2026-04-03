@@ -10,7 +10,7 @@ This library is the single source of truth for shared utilities across ownjoo-or
 
 - **`parsing`** — Type validation, datetime conversion, nested data extraction
 - **`logging`** — Progress tracking decorators for generator functions
-- **`out`** — Stream output utilities for stdout and stderr
+- **`console`** — Terminal and console output utilities (stdout, stderr, formatting)
 - **`asynchronous`** — Async utilities (in development)
 
 ## Installation
@@ -118,7 +118,7 @@ async for item in fetch_items_async():
 
 ## API Reference
 
-### `out` Module
+### `console` Module
 
 #### `Output(stdout=None, stderr=None)`
 

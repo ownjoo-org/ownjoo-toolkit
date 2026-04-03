@@ -1,9 +1,9 @@
-"""Tests for output stream utilities."""
+"""Tests for console output utilities."""
 
 import io
 import unittest
 
-from ownjoo_utils.out import Output
+from ownjoo_utils.console import Output
 
 
 class TestOutput(unittest.TestCase):
