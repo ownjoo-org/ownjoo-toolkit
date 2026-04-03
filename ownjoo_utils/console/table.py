@@ -199,7 +199,7 @@ class Table:
 
         # Headers
         if self.headers:
-            header_line = self._make_data_line(self.headers, widths, left, right)
+            header_line = self._make_data_line(self.headers, widths, left, right, left)
             lines.append(header_line)
             # Header separator with different junction characters
             header_sep = self._make_border_line(sep_left, sep_right, top, sep_cross, widths)
@@ -207,7 +207,7 @@ class Table:
 
         # Rows
         for row in self.rows:
-            data_line = self._make_data_line(row, widths, left, right)
+            data_line = self._make_data_line(row, widths, left, right, left)
             lines.append(data_line)
 
         # Bottom border
@@ -230,9 +230,17 @@ class Table:
         return "".join(segments)
 
     def _make_data_line(
-        self, row: List[str], widths: Dict[int, int], left: str, right: str
+        self, row: List[str], widths: Dict[int, int], left: str, right: str, col_sep: str = "│"
     ) -> str:
-        """Create a data line with cell values."""
+        """Create a data line with cell values.
+
+        Args:
+            row: List of cell values
+            widths: Column width dictionary
+            left: Left border character
+            right: Right border character
+            col_sep: Column separator character (vertical)
+        """
         segments = [left]
         for i in range(self.columns):
             cell = row[i] if i < len(row) else ""
@@ -245,7 +253,7 @@ class Table:
             segments.append(cell_content)
 
             if i < self.columns - 1:
-                segments.append("|" if self.style == "ascii" else "│")
+                segments.append(col_sep)
 
         segments.append(right)
         return "".join(segments)
