@@ -3,7 +3,7 @@
 import io
 import unittest
 
-from ownjoo_utils.console import Color, ColoredText, Output
+from utils.console import Color, ColoredText, Output
 
 
 class TestColoredText(unittest.TestCase):

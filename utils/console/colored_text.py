@@ -6,7 +6,7 @@ supporting iterables and convenient color methods.
 
 from typing import Iterator, Optional, TextIO, Tuple
 
-from ownjoo_utils.console.colors import Color
+from utils.console.colors import Color
 
 
 class ColoredText:
@@ -162,7 +162,7 @@ class ColoredText:
             flush: Whether to force flush the stream (default: False).
 
         Example:
-            >>> from ownjoo_utils import Output
+            >>> from utils import Output
             >>> o = Output()
             >>> o.segment().red("ERROR").white(": failed").out()
         """
@@ -182,7 +182,7 @@ class ColoredText:
             flush: Whether to force flush the stream (default: False).
 
         Example:
-            >>> from ownjoo_utils import Output
+            >>> from utils import Output
             >>> o = Output()
             >>> o.segment().red("ERROR").white(": critical").err()
         """

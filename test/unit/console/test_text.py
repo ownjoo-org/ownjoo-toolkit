@@ -4,7 +4,7 @@ import io
 import unittest
 from unittest.mock import patch
 
-from ownjoo_utils.console.text import (
+from utils.console.text import (
     boxed,
     center,
     pad_left,

@@ -8,7 +8,7 @@ decorator for wrapping function output as tables.
 from functools import wraps
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 
-from ownjoo_utils.console.terminal import (
+from utils.console.terminal import (
     border_chars,
     horizontal_line,
     pad_visible,
@@ -303,7 +303,7 @@ def tabulated(
         Decorator function.
 
     Example:
-        >>> from ownjoo_utils.console import tabulated
+        >>> from utils.console import tabulated
         >>> @tabulated(headers=["Name", "Status"])
         ... def get_results():
         ...     yield ("Task 1", "OK")

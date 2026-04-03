@@ -5,17 +5,17 @@ with support for colored output using ANSI escape codes, chainable colored text 
 and formatting utilities for tables, boxes, and status displays.
 """
 
-from ownjoo_utils.console.box import Box, in_box
-from ownjoo_utils.console.colored_text import ColoredText
-from ownjoo_utils.console.colors import Color
-from ownjoo_utils.console.status import (
+from utils.console.box import Box, in_box
+from utils.console.colored_text import ColoredText
+from utils.console.colors import Color
+from utils.console.status import (
     progress_bar,
     status_badge,
     status_line,
     status_wrapped,
 )
-from ownjoo_utils.console.streams import Output
-from ownjoo_utils.console.table import Table, tabulated
+from utils.console.streams import Output
+from utils.console.table import Table, tabulated
 
 __all__ = [
     "Output",

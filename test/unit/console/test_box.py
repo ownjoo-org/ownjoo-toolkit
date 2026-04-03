@@ -4,7 +4,7 @@ import io
 import unittest
 from unittest.mock import patch
 
-from ownjoo_utils.console.box import Box, in_box
+from utils.console.box import Box, in_box
 
 
 class TestBox(unittest.TestCase):

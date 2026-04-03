@@ -55,17 +55,17 @@ git checkout -b refactor/your-refactor-name
 python -m pytest test/ -v
 
 # Run with coverage
-python -m pytest test/ --cov=ownjoo_utils --cov-report=html
+python -m pytest test/ --cov=utils --cov-report=html
 
 # Check code style
-black --check ownjoo_utils/
-ruff check ownjoo_utils/
+black --check utils/
+ruff check utils/
 ```
 
 ### 5. Format Your Code
 
 ```bash
-black ownjoo_utils/
+black utils/
 ```
 
 ### 6. Push and Create a Pull Request

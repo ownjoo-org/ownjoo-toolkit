@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest test/ -v --tb=short)",
+      "Bash(pip install:*)",
+      "Bash(python -m unittest discover -s test -p \"test_*.py\" -v)",
+      "Bash(python test/unit/parsing/test_parsing.py -v)",
+      "Bash(python test/unit/logging/test_logging_decorators.py -v)",
+      "Bash(python -m black ownjoo_utils/ test/)",
+      "Bash(python -m pytest test/ -v)",
+      "Bash(python test/unit/parsing/test_parsing.py)",
+      "Bash(python test/unit/logging/test_logging_decorators.py)",
+      "Bash(python test/unit/async/test_async_decorators.py)",
+      "Bash(python -c \"from ownjoo_utils import validate, get_datetime, get_value, str_to_list, timed_generator, timed_async_generator; print\\('All imports successful'\\)\")",
+      "Bash(python test/unit/out/test_output.py -v)",
+      "Bash(python -c \"from ownjoo_utils import Output; o = Output\\(\\); o.out\\('✓ Output imported successfully'\\); print\\('✓ All main imports work'\\)\")",
+      "Bash(python -c \"from ownjoo_utils import Output; o = Output\\(\\); o.out\\('Output imported successfully'\\)\")",
+      "Bash(python test/unit/out/test_output.py)",
+      "Bash(python)",
+      "Bash(python test/unit/console/test_output.py -v)",
+      "Bash(python -c \"from ownjoo_utils import Output; o = Output\\(\\); o.out\\('Import successful from ownjoo_utils'\\); from ownjoo_utils.console import Output; print\\('Direct import from ownjoo_utils.console also works'\\)\")",
+      "Bash(python test/unit/console/test_output.py)",
+      "Bash(python test/unit/console/test_colored_text.py -v)",
+      "Bash(python test/unit/console/test_colored_text.py)",
+      "Bash(python test/unit/console/test_terminal.py -v)",
+      "Bash(python test/unit/console/test_text.py test/unit/console/test_box.py)",
+      "Bash(python test/unit/console/test_text.py -v)",
+      "Bash(python test/unit/console/test_box.py -v)",
+      "Bash(python test/unit/console/test_table.py -v)",
+      "Bash(python:*)",
+      "Bash(iconv -f UTF-8 -t UTF-8)",
+      "Bash(PYTHONIOENCODING=utf-8 python test/ua/demo_colored_boxes.py)",
+      "Bash(PYTHONIOENCODING=utf-8 python test/ua/demo_visual_output.py)",
+      "Read(//tmp/**)",
+      "Bash(pre-commit install:*)",
+      "Bash(mkdir -p ~/.git-templates/hooks)",
+      "Bash(cp C:/Users/eq_fu/Documents/work/PycharmProjects/ownjoo_utils/.pre-commit-config.yaml ~/.git-templates/)",
+      "Bash(git config:*)",
+      "Bash(find . -type f -name \"*.py\" -exec sed -i 's/from ownjoo_utils/from utils/g' {} \\\\;)",
+      "Bash(find . -type f -name \"*.py\" -exec sed -i 's/import ownjoo_utils/import utils/g' {} \\\\;)"
+    ]
+  }
+}

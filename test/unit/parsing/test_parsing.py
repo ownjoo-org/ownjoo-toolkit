@@ -2,8 +2,8 @@ import unittest
 from datetime import datetime
 from typing import Optional
 
-from ownjoo_utils.parsing.consts import TimeFormats
-from ownjoo_utils.parsing.types import get_datetime, get_value, str_to_list, validate
+from utils.parsing.consts import TimeFormats
+from utils.parsing.types import get_datetime, get_value, str_to_list, validate
 
 
 class TestParsingFunctions(unittest.TestCase):

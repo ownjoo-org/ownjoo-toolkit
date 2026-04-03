@@ -7,6 +7,6 @@ Provides functions for:
 - Extracting and validating nested values from dicts/lists
 """
 
-from ownjoo_utils.parsing.types import validate, get_datetime, get_value, str_to_list
+from utils.parsing.types import validate, get_datetime, get_value, str_to_list
 
 __all__ = ['validate', 'get_datetime', 'get_value', 'str_to_list']

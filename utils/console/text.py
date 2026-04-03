@@ -7,8 +7,8 @@ decorator for wrapping function output in decorative boxes.
 from functools import wraps
 from typing import Any, Callable, Optional
 
-from ownjoo_utils.console.box import Box
-from ownjoo_utils.console.terminal import pad_visible, select_style, truncate_visible, visible_width
+from utils.console.box import Box
+from utils.console.terminal import pad_visible, select_style, truncate_visible, visible_width
 
 
 def pad_left(text: str, width: int, fill: str = " ") -> str:
@@ -126,7 +126,7 @@ def boxed(
         Decorator function.
 
     Example:
-        >>> from ownjoo_utils.console import boxed
+        >>> from utils.console import boxed
         >>> @boxed(style='rounded')
         ... def greeting():
         ...     return "Hello from a box"
