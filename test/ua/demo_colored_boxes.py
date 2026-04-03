@@ -8,8 +8,8 @@ Usage:
     python test/ua/demo_colored_boxes.py
 """
 
-import sys
 import os
+import sys
 
 # Add parent directory to path for local imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
