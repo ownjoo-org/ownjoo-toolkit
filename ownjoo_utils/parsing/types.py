@@ -62,7 +62,6 @@ def get_datetime(
 
     Returns:
         A datetime object if parsing succeeds, otherwise None.
-        Logs exceptions at ERROR level if multiple formats parse to different values.
 
     Supported Formats:
         - ISO 8601: 'YYYY-MM-DDTHH:MM:SS'
@@ -78,36 +77,34 @@ def get_datetime(
         >>> get_datetime('Sun, 06 Nov 1994 08:49:37 GMT')
         datetime.datetime(1994, 11, 6, 8, 49, 37)
     """
-    result: Optional[datetime] = v
-    _last_result: Optional[datetime] = None
+    result: Optional[datetime] = None
     if v is None:
-        pass
+        return None
+    elif isinstance(v, datetime):
+        return v
     elif isinstance(v, (float, int)):  # if number treat as a timestamp (seconds from epoch)
         try:
             result = datetime.fromtimestamp(v)
-            if not _last_result:
-                _last_result = result
-            elif _last_result != result:
-                raise ValueError(f'Found conflicting timestamp: previous: {_last_result}, current: {result}')
+            return result
         except Exception as exc_num:
-            logger.exception(f'Failed to parse {v=} as timestamp: {exc_num}')
+            logger.debug(f'Failed to parse {v=} as timestamp: {exc_num}')
+            return None
     elif isinstance(format_str, str):
         try:
             result = datetime.strptime(v, format_str)
+            return result
         except Exception as exc_str:
-            logger.exception(f'Failed to parse {v=} as {format_str}: {exc_str}')
+            logger.debug(f'Failed to parse {v=} as {format_str}: {exc_str}')
+            return None
     elif isinstance(v, str):
         for time_format in TimeFormats:  # if str try to parse the str from a known format
             try:
                 result = datetime.strptime(v, time_format.value)
-                if not _last_result:
-                    _last_result = result
-                elif _last_result != result:
-                    raise ValueError(f'Found conflicting timestamp: previous: {_last_result}, current: {result}')
-                break
-            except Exception as exc_str:
-                logger.exception(f'Failed to parse {v=} as {time_format.value} ({time_format}): {exc_str}')
-    return result
+                return result
+            except Exception:
+                # Silently try next format instead of logging each failure
+                continue
+    return None
 
 
 def validate(
@@ -153,7 +150,7 @@ def validate(
     is_valid_result: bool = False
 
     # check pre-defined converters
-    if not isinstance(converter, Callable):
+    if not callable(converter):
         if exp is list:
             converter = str_to_list
         elif exp is datetime:
@@ -163,7 +160,7 @@ def validate(
 
     # convert values as needed
     try:
-        result = converter(v, exp, **kwargs)
+        result = converter(v, **kwargs)
     except Exception as exc_str:
         logger.debug(f'Failed to parse {v=} with converter {converter}: {exc_str}', exc_info=True)
 
@@ -214,14 +211,37 @@ def get_value(
         'Bob'
     """
     result: Any = None
-    try:
-        keydex: Union[None, float, int, str] = path.pop(0) if path and isinstance(path, list) else None
-        result = src[keydex]
-    except (IndexError, KeyError, TypeError) as exc_val:
-        logger.debug(f'ERROR extracting {path=} from {src=}: {exc_val=}', exc_info=True)
-    if path and isinstance(result, (dict, list)):  # keep digging if needed
-        return get_value(src=result, path=path, **kwargs)
-    elif isinstance(post_processor, Callable):  # call the post-processor if needed
-        return post_processor(result or src, **kwargs)
+    remaining_path: Union[None, list] = None
+
+    # Extract the first key/index without mutating the original path
+    if path and isinstance(path, list) and len(path) > 0:
+        keydex = path[0]
+        remaining_path = path[1:]
+    else:
+        keydex = None
+        remaining_path = None
+
+    # Try to navigate to the next level
+    if keydex is not None:
+        try:
+            result = src[keydex]
+        except (IndexError, KeyError, TypeError) as exc_val:
+            logger.debug(f'ERROR extracting {path=} from {src=}: {exc_val=}', exc_info=True)
+            result = None
+    else:
+        result = src
+
+    # Recursively continue if path remains and result is a dict/list
+    if remaining_path and result is not None and isinstance(result, (dict, list)):
+        return get_value(src=result, path=remaining_path, post_processor=post_processor, **kwargs)
+
+    # Apply post-processor if result was found (not None) or if no result
+    if callable(post_processor):
+        # Only process the result if extraction succeeded (result is not None)
+        if result is not None:
+            return post_processor(result, **kwargs)
+        else:
+            # Extraction failed, return default from post_processor
+            return post_processor(result, **kwargs)
     else:
         return result  # return found value without post-processing
