@@ -8,12 +8,6 @@ Usage:
     python test/ua/demo_colored_boxes.py
 """
 
-import os
-import sys
-
-# Add parent directory to path for local imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from ownjoo_utils.console.box import Box
 from ownjoo_utils.console.colors import Color
 from ownjoo_utils.console.streams import Output
