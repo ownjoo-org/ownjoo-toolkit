@@ -10,6 +10,7 @@ This library is the single source of truth for shared utilities across ownjoo-or
 
 - **`parsing`** — Type validation, datetime conversion, nested data extraction
 - **`logging`** — Progress tracking decorators for generator functions
+- **`out`** — Stream output utilities for stdout and stderr
 - **`asynchronous`** — Async utilities (in development)
 
 ## Installation
@@ -29,6 +30,31 @@ pip install -e ".[dev]"
 ```
 
 ## Quick Start
+
+### Stream Output
+
+```python
+from ownjoo_utils import Output
+
+# Create an output handler
+output = Output()
+
+# Write to stdout
+output.out("Hello", "World")  # Hello World
+
+# Write to stderr
+output.err("Error:", "Something went wrong")  # Error: Something went wrong
+
+# Custom separators and line endings
+output.out("a", "b", "c", sep="|", end=" - done\n")  # a|b|c - done
+
+# Redirect to custom streams (useful for testing or file output)
+import io
+file_stream = io.StringIO()
+output = Output(stdout=file_stream)
+output.out("This goes to the StringIO")
+print(file_stream.getvalue())  # This goes to the StringIO\n
+```
 
 ### Parsing & Validation
 
@@ -91,6 +117,72 @@ async for item in fetch_items_async():
 ```
 
 ## API Reference
+
+### `out` Module
+
+#### `Output(stdout=None, stderr=None)`
+
+Simple wrapper for writing to stdout and stderr streams.
+
+- **Parameters:**
+  - `stdout` (TextIO): The output stream for normal output. Default: sys.stdout
+  - `stderr` (TextIO): The output stream for error messages. Default: sys.stderr
+
+- **Methods:**
+
+##### `out(*args, sep=' ', end='\n', flush=False)`
+
+Write to standard output stream.
+
+- **Parameters:**
+  - `*args`: Values to write (converted to strings)
+  - `sep` (str): Separator between args. Default: space
+  - `end` (str): String appended after the last value. Default: newline
+  - `flush` (bool): Force flush the stream. Default: False
+
+**Example:**
+
+```python
+output = Output()
+output.out("Hello", "World")  # Hello World
+output.out("Status:", "OK", end=" - done\n")  # Status: OK - done
+output.out("a", "b", "c", sep="|")  # a|b|c
+```
+
+##### `err(*args, sep=' ', end='\n', flush=False)`
+
+Write to standard error stream.
+
+- **Parameters:**
+  - `*args`: Values to write (converted to strings)
+  - `sep` (str): Separator between args. Default: space
+  - `end` (str): String appended after the last value. Default: newline
+  - `flush` (bool): Force flush the stream. Default: False
+
+**Example:**
+
+```python
+output = Output()
+output.err("Error:", "File not found")  # Error: File not found
+output.err("code=404", "msg=Not Found", sep="|", flush=True)  # code=404|msg=Not Found
+```
+
+**Stream Redirection:**
+
+```python
+import io
+
+# Capture output for testing
+stdout_capture = io.StringIO()
+stderr_capture = io.StringIO()
+output = Output(stdout=stdout_capture, stderr=stderr_capture)
+
+output.out("to stdout")
+output.err("to stderr")
+
+print(stdout_capture.getvalue())  # to stdout\n
+print(stderr_capture.getvalue())  # to stderr\n
+```
 
 ### `parsing` Module
 
