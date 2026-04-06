@@ -242,8 +242,3 @@ def dig(
     if callable(post_processor) and result is not None:
         return post_processor(result, **kwargs)
     return result  # return found value without post-processing
-
-
-def get_value(*args, **kwargs) -> Optional[R]:
-    """Deprecated alias for dig(). Use dig() instead."""
-    return dig(*args, **kwargs)

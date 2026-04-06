@@ -9,7 +9,7 @@ Centralized utilities for all ownjoo-org projects, including:
 - Asynchronous utilities (asynchronous module, in development)
 
 Usage:
-    from ownjoo_toolkit import validate, get_datetime, str_to_list, get_value
+    from ownjoo_toolkit import validate, get_datetime, str_to_list, dig
     from ownjoo_toolkit import timed_generator, timed_async_generator
     from ownjoo_toolkit import Output, Color, ColoredText
     from ownjoo_toolkit import Table, Box, status_line, progress_bar
