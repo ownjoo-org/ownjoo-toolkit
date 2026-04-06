@@ -4,7 +4,7 @@ import io
 import unittest
 from unittest.mock import patch
 
-from ownjoo_toolkit.console.text import (
+from oj_toolkit.console.text import (
     boxed,
     center,
     pad_left,
@@ -220,8 +220,6 @@ class TestBoxedDecorator(unittest.TestCase):
             return "Hello"
 
         # execute with captured output
-        import sys
-
         captured_output = io.StringIO()
         with patch("sys.stdout", captured_output):
             greeting()
@@ -238,8 +236,6 @@ class TestBoxedDecorator(unittest.TestCase):
             return ["Item 1", "Item 2"]
 
         # execute with captured output
-        import sys
-
         captured_output = io.StringIO()
         with patch("sys.stdout", captured_output):
             items()
@@ -257,8 +253,6 @@ class TestBoxedDecorator(unittest.TestCase):
             return None
 
         # execute with captured output
-        import sys
-
         captured_output = io.StringIO()
         with patch("sys.stdout", captured_output):
             empty()
@@ -274,8 +268,6 @@ class TestBoxedDecorator(unittest.TestCase):
             return "Test"
 
         # execute with captured output
-        import sys
-
         captured_output = io.StringIO()
         with patch("sys.stdout", captured_output):
             message()
@@ -300,8 +292,6 @@ class TestBoxedDecorator(unittest.TestCase):
             return ("Line 1", "Line 2")
 
         # execute with captured output
-        import sys
-
         captured_output = io.StringIO()
         with patch("sys.stdout", captured_output):
             tuple_data()

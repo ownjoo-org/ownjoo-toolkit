@@ -4,12 +4,16 @@ import unittest
 
 from typing import Generator, AsyncGenerator
 
-from ownjoo_toolkit.logging.decorators import timed_generator, timed_async_generator
+from oj_toolkit.logging.decorators import timed_generator, timed_async_generator
 
 
 class TestLoggingDecorators(unittest.TestCase):
+    """Tests for timed_generator and timed_async_generator decorators."""
+
     def test_should_import(self):
-        @timed_generator(log_progress=True, log_level=INFO, log_progress_interval=1, logger=getLogger(__name__))
+        @timed_generator(
+            log_progress=True, log_level=INFO, log_progress_interval=1, logger=getLogger(__name__)
+        )
         def log_something() -> Generator[int, None, None]:
             yield 0
 
@@ -19,7 +23,9 @@ class TestLoggingDecorators(unittest.TestCase):
 
     def test_should_import_async(self):
         async def run_me():
-            @timed_async_generator(log_progress=True, log_level=INFO, log_progress_interval=1, logger=getLogger(__name__))
+            @timed_async_generator(
+                log_progress=True, log_level=INFO, log_progress_interval=1, logger=getLogger(__name__)
+            )
             async def log_something() -> AsyncGenerator[int, None]:
                 yield 0
 

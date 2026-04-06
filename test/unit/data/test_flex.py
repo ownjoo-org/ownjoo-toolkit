@@ -1,6 +1,6 @@
 import unittest
 
-from ownjoo_toolkit.data.flex import FlexMixin
+from oj_toolkit.data.flex import FlexMixin
 
 
 class ConcreteFlexMixin(FlexMixin):

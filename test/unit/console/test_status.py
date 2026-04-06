@@ -4,8 +4,8 @@ import io
 import unittest
 from unittest.mock import patch
 
-from ownjoo_toolkit.console.colors import Color
-from ownjoo_toolkit.console.status import (
+from oj_toolkit.console.colors import Color
+from oj_toolkit.console.status import (
     progress_bar,
     status_badge,
     status_line,
@@ -391,7 +391,9 @@ class TestStatusWrapped(unittest.TestCase):
         output = captured.getvalue()
         self.assertIn("[OK]", output)
         # List is converted to string representation
-        self.assertIn("['A', 'B', 'C']", output) or self.assertIn("A", output)
+        self.assertTrue(
+            "['A', 'B', 'C']" in output or "A" in output
+        )
 
 
 if __name__ == "__main__":

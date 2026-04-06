@@ -3,7 +3,7 @@ from unittest import IsolatedAsyncioTestCase
 
 import pytest
 
-from ownjoo_toolkit.asynchronous.async_chunks import a_chunks
+from oj_toolkit.asynchronous.async_chunks import a_chunks
 
 
 async def async_range(n: int):

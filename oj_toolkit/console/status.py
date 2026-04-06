@@ -4,10 +4,11 @@ Provides simple utilities for displaying status information, progress bars,
 and status badges with optional colors.
 """
 
+import sys
 from functools import wraps
 from typing import Callable, Optional
 
-from ownjoo_toolkit.console.colors import Color
+from oj_toolkit.console.colors import Color
 
 
 def status_line(
@@ -25,7 +26,7 @@ def status_line(
         Formatted status line string.
 
     Example:
-        >>> from ownjoo_toolkit.console import status_line, Color
+        >>> from oj_toolkit.console import status_line, Color
         >>> status_line("Status", "OK", Color.GREEN)
         'Status: OK'  (with green color on OK)
     """
@@ -67,11 +68,11 @@ def progress_bar(
     filled_count = int((percent / 100) * width)
     empty_count = width - filled_count
 
-    bar = filled * filled_count + empty * empty_count
+    progress_str = filled * filled_count + empty * empty_count
 
     if label:
-        return f"{label}: {bar}  {percent:>3.0f}%"
-    return f"{bar}  {percent:>3.0f}%"
+        return f"{label}: {progress_str}  {percent:>3.0f}%"
+    return f"{progress_str}  {percent:>3.0f}%"
 
 
 def status_badge(text: str, status: str = "info") -> str:
@@ -122,7 +123,7 @@ def status_wrapped(status: str = "info") -> Callable:
         Decorator function.
 
     Example:
-        >>> from ownjoo_toolkit.console import status_wrapped
+        >>> from oj_toolkit.console import status_wrapped
         >>> @status_wrapped(status='ok')
         ... def operation():
         ...     return "Operation complete"
@@ -133,8 +134,6 @@ def status_wrapped(status: str = "info") -> Callable:
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
-            import sys
-
             result = func(*args, **kwargs)
             output = status_badge(str(result), status)
             print(output, file=sys.stdout)

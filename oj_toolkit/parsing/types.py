@@ -15,7 +15,7 @@ from typing import Any, Callable, Optional, Type, TypeVar, Union
 T = TypeVar('T')
 R = TypeVar('R')
 
-from ownjoo_toolkit.parsing.consts import DEFAULT_CONVERTER, DEFAULT_SEPARATOR, DEFAULT_VALIDATOR, TimeFormats
+from oj_toolkit.parsing.consts import DEFAULT_CONVERTER, DEFAULT_SEPARATOR, DEFAULT_VALIDATOR, TimeFormats
 
 logger = logging.getLogger(__name__)
 

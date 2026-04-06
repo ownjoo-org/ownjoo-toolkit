@@ -4,7 +4,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from ownjoo_toolkit.console.terminal import (
+from oj_toolkit.console.terminal import (
     border_chars,
     detect_unicode_support,
     horizontal_line,
@@ -72,7 +72,7 @@ class TestSelectStyle(unittest.TestCase):
     def test_should_select_auto_style_unicode(self):
         # setup
         # execute
-        with patch("ownjoo_toolkit.console.terminal.detect_unicode_support", return_value=True):
+        with patch("oj_toolkit.console.terminal.detect_unicode_support", return_value=True):
             result = select_style("auto", "ascii", "rounded")
 
         # assess
@@ -81,7 +81,7 @@ class TestSelectStyle(unittest.TestCase):
     def test_should_select_auto_style_ascii(self):
         # setup
         # execute
-        with patch("ownjoo_toolkit.console.terminal.detect_unicode_support", return_value=False):
+        with patch("oj_toolkit.console.terminal.detect_unicode_support", return_value=False):
             result = select_style("auto", "ascii", "rounded")
 
         # assess

@@ -5,19 +5,19 @@ detection of input format (dict, tuple, list, str) and the @tabulated
 decorator for wrapping function output as tables.
 """
 
+import sys
 from functools import wraps
-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Callable, Dict, Iterator, List, Optional
 
-from ownjoo_toolkit.console.terminal import (
+from oj_toolkit.console.terminal import (
     border_chars,
-    horizontal_line,
     pad_visible,
     select_style,
     visible_width,
 )
 
 
-class Table:
+class Table:  # pylint: disable=too-many-instance-attributes
     """Smart table builder with auto-detection and multiple styles.
 
     Automatically detects input format (dict, tuple, list, str) and builds
@@ -31,7 +31,7 @@ class Table:
         align: Default alignment ('left', 'right', 'center').
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
         headers: Optional[List[str]] = None,
         columns: Optional[int] = None,
@@ -70,7 +70,7 @@ class Table:
         self.rows.append([str(v) for v in values])
         return self
 
-    def add_rows(self, iterable: Iterator) -> "Table":
+    def add_rows(self, iterable: Iterator) -> "Table":  # pylint: disable=too-many-branches
         """Add multiple rows from an iterable.
 
         Intelligently detects input format:
@@ -118,8 +118,7 @@ class Table:
                 for item in items:
                     row = [str(v) for v in item]
                     self.rows.append(row)
-                    if len(row) > self.columns:
-                        self.columns = len(row)
+                    self.columns = max(self.columns, len(row))
 
         else:
             # String or simple items - treat each as a row
@@ -178,7 +177,7 @@ class Table:
 
         return widths
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # pylint: disable=too-many-locals
         """Render table as string.
 
         Returns:
@@ -189,7 +188,7 @@ class Table:
 
         widths = self._calculate_column_widths()
         chars = border_chars(self.style)
-        tl, tr, bl, br, top, bot, left, right, cross, top_cross, sep_left, sep_cross, sep_right, bottom_cross = chars
+        tl, tr, bl, br, top, bot, left, right, _cross, top_cross, sep_left, sep_cross, sep_right, bottom_cross = chars
 
         lines = []
 
@@ -216,7 +215,7 @@ class Table:
 
         return "\n".join(lines)
 
-    def _make_border_line(
+    def _make_border_line(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self, tl: str, tr: str, fill: str, cross: str, widths: Dict[int, int]
     ) -> str:
         """Create a border line with specified corners and junctions."""
@@ -229,7 +228,7 @@ class Table:
         segments.append(tr)
         return "".join(segments)
 
-    def _make_data_line(
+    def _make_data_line(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self, row: List[str], widths: Dict[int, int], left: str, right: str, col_sep: str = "│"
     ) -> str:
         """Create a data line with cell values.
@@ -266,8 +265,6 @@ class Table:
             end: String appended after output. Default: newline.
             flush: Whether to force flush. Default: False.
         """
-        import sys
-
         print(str(self), sep=sep, end=end, file=sys.stdout, flush=flush)
 
     def err(self, sep: str = "", end: str = "\n", flush: bool = False) -> None:
@@ -278,8 +275,6 @@ class Table:
             end: String appended after output. Default: newline.
             flush: Whether to force flush. Default: False.
         """
-        import sys
-
         print(str(self), sep=sep, end=end, file=sys.stderr, flush=flush)
 
 
@@ -303,7 +298,7 @@ def tabulated(
         Decorator function.
 
     Example:
-        >>> from ownjoo_toolkit.console import tabulated
+        >>> from oj_toolkit.console import tabulated
         >>> @tabulated(headers=["Name", "Status"])
         ... def get_results():
         ...     yield ("Task 1", "OK")

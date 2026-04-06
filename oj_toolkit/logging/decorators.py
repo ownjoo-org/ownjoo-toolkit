@@ -11,8 +11,8 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import AsyncGenerator, Generator, Optional
 
-from ownjoo_toolkit.logging.consts import LOG_FORMAT
-from ownjoo_toolkit.parsing.consts import TimeFormats
+from oj_toolkit.logging.consts import LOG_FORMAT
+from oj_toolkit.parsing.consts import TimeFormats
 
 
 def timed_generator(

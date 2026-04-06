@@ -4,12 +4,12 @@ Provides the Box class for wrapping text in decorative boxes with multiple
 border styles, and the @in_box decorator for wrapping function output.
 """
 
+import sys
 from functools import wraps
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
-from ownjoo_toolkit.console.terminal import (
+from oj_toolkit.console.terminal import (
     border_chars,
-    horizontal_line,
     pad_visible,
     select_style,
     visible_width,
@@ -90,14 +90,14 @@ class Box:
         content_width = self._calculate_content_width()
         return content_width + (self.padding * 2) + 2
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # pylint: disable=too-many-locals
         """Render box as string with borders.
 
         Returns:
             Multi-line string with box drawn around content.
         """
         chars = border_chars(self.style)
-        tl, tr, bl, br, top, bot, left, right, cross = chars[:9]  # Use first 9 chars for box rendering
+        tl, tr, bl, br, top, bot, left, right, _cross = chars[:9]  # Use first 9 chars for box rendering
 
         box_width = self._get_box_width()
         inner_width = box_width - 2  # Account for left/right borders
@@ -156,8 +156,6 @@ class Box:
             end: String appended after output (default: newline).
             flush: Whether to force flush (default: False).
         """
-        import sys
-
         print(str(self), sep=sep, end=end, file=sys.stdout, flush=flush)
 
     def err(self, sep: str = "", end: str = "\n", flush: bool = False) -> None:
@@ -168,8 +166,6 @@ class Box:
             end: String appended after output (default: newline).
             flush: Whether to force flush (default: False).
         """
-        import sys
-
         print(str(self), sep=sep, end=end, file=sys.stderr, flush=flush)
 
 
@@ -195,7 +191,7 @@ def in_box(
         Decorator function.
 
     Example:
-        >>> from ownjoo_toolkit.console import in_box
+        >>> from oj_toolkit.console import in_box
         >>> @in_box(style='double', title="Result")
         ... def show_result():
         ...     return "Success!"

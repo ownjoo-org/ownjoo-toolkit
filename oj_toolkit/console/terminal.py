@@ -100,7 +100,7 @@ def visible_width(text: str) -> int:
         The number of visible characters (excluding ANSI codes).
 
     Example:
-        >>> from ownjoo_toolkit.console import Color
+        >>> from oj_toolkit.console import Color
         >>> colored = f"{Color.RED}Error{Color.RESET}"
         >>> visible_width(colored)  # Returns 5, not 20+
         5
@@ -128,7 +128,7 @@ def pad_visible(text: str, width: int, align: str = "left", fill: str = " ") -> 
         Padded text with correct visible width.
 
     Example:
-        >>> from ownjoo_toolkit.console import Color
+        >>> from oj_toolkit.console import Color
         >>> colored = f"{Color.RED}Hi{Color.RESET}"
         >>> padded = pad_visible(colored, 10, align='left')
         >>> visible_width(padded)  # Returns 10
@@ -142,9 +142,9 @@ def pad_visible(text: str, width: int, align: str = "left", fill: str = " ") -> 
 
     if align == "left":
         return text + (fill * padding_needed)
-    elif align == "right":
+    if align == "right":
         return (fill * padding_needed) + text
-    elif align == "center":
+    if align == "center":
         left_pad = padding_needed // 2
         right_pad = padding_needed - left_pad
         return (fill * left_pad) + text + (fill * right_pad)
@@ -200,14 +200,16 @@ def border_chars(style: str) -> Tuple[str, str, str, str, str, str, str, str, st
         style: Border style ('ascii', 'rounded', 'double', 'single', 'none', etc.).
 
     Returns:
-        Tuple of (tl, tr, bl, br, top, bottom, left, right, cross, top_cross, sep_left, sep_cross, sep_right, bottom_cross).
+        Tuple of (tl, tr, bl, br, top, bottom, left, right, cross,
+        top_cross, sep_left, sep_cross, sep_right, bottom_cross).
 
     Example:
         >>> chars = border_chars('rounded')
         >>> print(f"{chars[0]}{chars[4]}{chars[1]}")  # ╭─╮
     """
     styles = {
-        # Format: (tl, tr, bl, br, top, bottom, left, right, cross, top_cross, sep_left, sep_cross, sep_right, bottom_cross)
+        # Format: (tl, tr, bl, br, top, bottom, left, right, cross,
+        #          top_cross, sep_left, sep_cross, sep_right, bottom_cross)
         "ascii": ("+", "+", "+", "+", "-", "-", "|", "|", "+", "+", "+", "+", "+", "+"),
         "rounded": ("╭", "╮", "╰", "╯", "─", "─", "│", "│", "┼", "┬", "├", "┼", "┤", "┴"),
         "double": ("╔", "╗", "╚", "╝", "═", "═", "║", "║", "╬", "╦", "╠", "╬", "╣", "╩"),

@@ -8,9 +8,9 @@ Usage:
     python test/ua/demo_colored_boxes.py
 """
 
-from ownjoo_toolkit.console.box import Box
-from ownjoo_toolkit.console.colors import Color
-from ownjoo_toolkit.console.streams import Output
+from oj_toolkit.console.box import Box
+from oj_toolkit.console.colors import Color
+from oj_toolkit.console.streams import Output
 
 output = Output()
 

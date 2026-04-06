@@ -5,7 +5,7 @@ Supports standard colors and text styles (bold, dim, etc.).
 """
 
 
-class Color:
+class Color:  # pylint: disable=too-few-public-methods
     """ANSI color codes for terminal output.
 
     Standard ANSI color codes for use with terminal emulators that support color.

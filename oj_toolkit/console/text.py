@@ -1,3 +1,4 @@
+# pylint: disable=duplicate-code
 """Text formatting utilities and decorators.
 
 Provides functions for text alignment, padding, truncation, and the @boxed
@@ -5,10 +6,10 @@ decorator for wrapping function output in decorative boxes.
 """
 
 from functools import wraps
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
-from ownjoo_toolkit.console.box import Box
-from ownjoo_toolkit.console.terminal import pad_visible, select_style, truncate_visible, visible_width
+from oj_toolkit.console.box import Box
+from oj_toolkit.console.terminal import pad_visible, truncate_visible
 
 
 def pad_left(text: str, width: int, fill: str = " ") -> str:
@@ -126,7 +127,7 @@ def boxed(
         Decorator function.
 
     Example:
-        >>> from ownjoo_toolkit.console import boxed
+        >>> from oj_toolkit.console import boxed
         >>> @boxed(style='rounded')
         ... def greeting():
         ...     return "Hello from a box"

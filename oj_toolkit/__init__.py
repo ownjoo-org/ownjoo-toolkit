@@ -9,13 +9,13 @@ Centralized utilities for all ownjoo-org projects, including:
 - Asynchronous utilities (asynchronous module, in development)
 
 Usage:
-    from ownjoo_toolkit import validate, get_datetime, str_to_list, dig
-    from ownjoo_toolkit import timed_generator, timed_async_generator
-    from ownjoo_toolkit import Output, Color, ColoredText
-    from ownjoo_toolkit import Table, Box, status_line, progress_bar
+    from oj_toolkit import validate, get_datetime, str_to_list, dig
+    from oj_toolkit import timed_generator, timed_async_generator
+    from oj_toolkit import Output, Color, ColoredText
+    from oj_toolkit import Table, Box, status_line, progress_bar
 """
 
-from ownjoo_toolkit.console import (
+from oj_toolkit.console import (
     Box,
     Color,
     ColoredText,
@@ -28,8 +28,8 @@ from ownjoo_toolkit.console import (
     status_wrapped,
     tabulated,
 )
-from ownjoo_toolkit.logging import timed_async_generator, timed_generator
-from ownjoo_toolkit.parsing import validate, get_datetime, dig, str_to_list
+from oj_toolkit.logging import timed_async_generator, timed_generator
+from oj_toolkit.parsing import validate, get_datetime, dig, str_to_list
 
 __all__ = [
     'timed_async_generator',

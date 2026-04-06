@@ -4,9 +4,10 @@ Provides ColoredText class for building colorized strings with fluent API,
 supporting iterables and convenient color methods.
 """
 
+import sys
 from typing import Iterator, Optional, TextIO, Tuple
 
-from ownjoo_toolkit.console.colors import Color
+from oj_toolkit.console.colors import Color
 
 
 class ColoredText:
@@ -37,8 +38,6 @@ class ColoredText:
             stdout: Output stream for .out() method (default: sys.stdout).
             stderr: Error stream for .err() method (default: sys.stderr).
         """
-        import sys
-
         self.segments: list[Tuple[str, str]] = []
         self._stdout = stdout or sys.stdout
         self._stderr = stderr or sys.stderr
@@ -162,7 +161,7 @@ class ColoredText:
             flush: Whether to force flush the stream (default: False).
 
         Example:
-            >>> from ownjoo_toolkit import Output
+            >>> from oj_toolkit import Output
             >>> o = Output()
             >>> o.segment().red("ERROR").white(": failed").out()
         """
@@ -182,7 +181,7 @@ class ColoredText:
             flush: Whether to force flush the stream (default: False).
 
         Example:
-            >>> from ownjoo_toolkit import Output
+            >>> from oj_toolkit import Output
             >>> o = Output()
             >>> o.segment().red("ERROR").white(": critical").err()
         """

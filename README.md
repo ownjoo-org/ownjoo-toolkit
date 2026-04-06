@@ -40,7 +40,7 @@ pip install -e ".[dev]"
 ### Stream Output
 
 ```python
-from ownjoo_toolkit import Output
+from oj_toolkit import Output
 
 # Create an output handler
 output = Output()
@@ -65,7 +65,7 @@ print(file_stream.getvalue())  # This goes to the StringIO\n
 ### Colored Output
 
 ```python
-from ownjoo_toolkit import Output, Color
+from oj_toolkit import Output, Color
 
 output = Output()
 
@@ -84,7 +84,7 @@ output.out_colored("Bold Red", color=Color.BOLD + Color.RED)
 output.out_colored("Cyan background", color=Color.BG_CYAN)
 
 # Use Color constants directly
-from ownjoo_toolkit.console import Color
+from oj_toolkit.console import Color
 colored_text = Color.colorize("Important", Color.BOLD + Color.RED)
 print(colored_text)
 ```
@@ -92,7 +92,7 @@ print(colored_text)
 ### Parsing & Validation
 
 ```python
-from ownjoo_toolkit import validate, get_datetime, str_to_list, dig
+from oj_toolkit import validate, get_datetime, str_to_list, dig
 
 # Validate and convert types
 result = validate('123', exp=int, converter=int)  # Returns: 123
@@ -116,7 +116,7 @@ name = dig(data, path=['users', 1, 'name'], exp=str)  # Returns: 'Bob'
 ### Progress Logging
 
 ```python
-from ownjoo_toolkit import timed_generator, timed_async_generator
+from oj_toolkit import timed_generator, timed_async_generator
 import logging
 
 # Log progress for a generator
@@ -231,7 +231,7 @@ Write colored text to stdout using ANSI escape codes.
 **Example:**
 
 ```python
-from ownjoo_toolkit import Output, Color
+from oj_toolkit import Output, Color
 
 output = Output()
 output.out_colored("Error", color=Color.RED)
@@ -297,7 +297,7 @@ Apply ANSI color codes to text.
 **Example:**
 
 ```python
-from ownjoo_toolkit import Color
+from oj_toolkit import Color
 
 # Single color
 colored = Color.colorize("Error", Color.RED)
@@ -324,7 +324,7 @@ Color.BOLD + Color.BG_BLUE      # Bold text on blue background
 Build ASCII/Unicode tables with automatic input detection and formatting.
 
 ```python
-from ownjoo_toolkit import Table, tabulated
+from oj_toolkit import Table, tabulated
 
 # Create a table with dict input (auto-detects headers)
 data = [
@@ -369,7 +369,7 @@ print(table)  # Uses rounded Unicode borders
 Wrap text in decorative boxes with multiple border styles.
 
 ```python
-from ownjoo_toolkit import Box, in_box
+from oj_toolkit import Box, in_box
 
 # Create a simple box
 box = Box(style="rounded", padding=1)
@@ -402,7 +402,7 @@ print(box)
 Format simple status lines with optional colors.
 
 ```python
-from ownjoo_toolkit import status_line, Color
+from oj_toolkit import status_line, Color
 
 # Basic status line
 output = status_line("Status", "OK")  # Status: OK
@@ -419,7 +419,7 @@ output = status_line("Name", "Alice", sep=" = ")  # Name = Alice
 Display a text-based progress bar with percentage.
 
 ```python
-from ownjoo_toolkit import progress_bar
+from oj_toolkit import progress_bar
 
 # Default bar
 bar = progress_bar(75)  # ██████████████░░░░░░   75%
@@ -441,7 +441,7 @@ progress_bar(100)    # Full bar (all filled)
 Display colored status badges with semantic meaning.
 
 ```python
-from ownjoo_toolkit import status_badge
+from oj_toolkit import status_badge
 
 # Semantic status badges
 badge = status_badge("READY", "ok")        # [OK] READY (green)
@@ -457,7 +457,7 @@ badge = status_badge("INFO", "info")       # [INFO] INFO (cyan)
 Automatically prepend a status badge to function output.
 
 ```python
-from ownjoo_toolkit import status_wrapped
+from oj_toolkit import status_wrapped
 
 @status_wrapped(status="ok")
 def operation():
@@ -475,7 +475,7 @@ failed_operation()  # Prints: [ERROR] Something went wrong (in red)
 **Example: Combining Formatters**
 
 ```python
-from ownjoo_toolkit import Table, Box, status_line, Color
+from oj_toolkit import Table, Box, status_line, Color
 
 # Use formatters together for complex layouts
 results = Table(headers=["Task", "Status"])
@@ -623,7 +623,7 @@ Mixin for flexible data handling. Provides dict-like access to instance and clas
 **Example:**
 
 ```python
-from ownjoo_toolkit.data.flex import FlexMixin
+from oj_toolkit.data.flex import FlexMixin
 
 class MyModel(FlexMixin):
     kind: str = 'model'
@@ -715,7 +715,7 @@ python -m pytest test/ -v
 With coverage:
 
 ```bash
-python -m pytest test/ --cov=ownjoo_toolkit --cov-report=html
+python -m pytest test/ --cov=oj_toolkit --cov-report=html
 ```
 
 ### Code Style
@@ -724,13 +724,13 @@ This project uses `black` for formatting and `ruff` for linting.
 
 ```bash
 # Format code
-black ownjoo_toolkit/
+black oj_toolkit/
 
 # Check formatting
-black --check ownjoo_toolkit/
+black --check oj_toolkit/
 
 # Lint
-ruff check ownjoo_toolkit/
+ruff check oj_toolkit/
 ```
 
 ### Testing Guidelines
