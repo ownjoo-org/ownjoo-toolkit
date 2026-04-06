@@ -3,10 +3,12 @@ from datetime import datetime
 from typing import Optional
 
 from ownjoo_toolkit.parsing.consts import TimeFormats
-from ownjoo_toolkit.parsing.types import get_datetime, get_value, str_to_list, validate
+from ownjoo_toolkit.parsing.types import get_datetime, dig, str_to_list, validate
 
 
 class TestParsingFunctions(unittest.TestCase):
+    """Tests for parsing utility functions."""
+
     def test_should_get_validated_type(self):
         # setup
         expected: str = 'blah'
@@ -153,7 +155,7 @@ class TestParsingFunctions(unittest.TestCase):
         expected: str = 'Sun, 06 Nov 1994 08:49:37 GMT'
 
         # execute
-        actual: datetime = get_datetime(v=expected, exp=datetime)
+        actual: datetime = get_datetime(v=expected)
 
         # assess
         self.assertIsInstance(actual, datetime)
@@ -165,7 +167,7 @@ class TestParsingFunctions(unittest.TestCase):
         expected: float = datetime.now().timestamp()
 
         # execute
-        actual: datetime = get_datetime(v=expected, exp=datetime)
+        actual: datetime = get_datetime(v=expected)
 
         # assess
         self.assertIsInstance(expected, float)
@@ -178,7 +180,7 @@ class TestParsingFunctions(unittest.TestCase):
         expected: str = 'blah'
 
         # execute
-        actual = get_value(src=['', [expected]], path=[1, 0], exp=str, default='')
+        actual = dig(src=['', [expected]], path=[1, 0], exp=str, default='')
 
         # assess
         self.assertEqual(expected, actual)
@@ -190,7 +192,7 @@ class TestParsingFunctions(unittest.TestCase):
         expected: str = 'blah'
 
         # execute
-        actual = get_value(src={'first': 'a', 'second': [expected]}, path=['second', 0], exp=str)
+        actual = dig(src={'first': 'a', 'second': [expected]}, path=['second', 0], exp=str)
 
         # assess
         self.assertEqual(expected, actual)
@@ -202,7 +204,7 @@ class TestParsingFunctions(unittest.TestCase):
         expected: str = 'blah'
 
         # execute
-        actual = get_value(src=expected, exp=str, validator=lambda x, *args, **kwargs: x == expected)
+        actual = dig(src=expected, exp=str, validator=lambda x, *args, **kwargs: x == expected)
 
         # assess
         self.assertEqual(expected, actual)
@@ -236,10 +238,9 @@ class TestParsingFunctions(unittest.TestCase):
     def test_should_handle_get_value_with_invalid_path(self):
         # setup
         src: dict = {'a': {'b': 'c'}}
-        expected: Optional[dict] = None
 
         # execute
-        actual = get_value(src=src, path=['x', 'y', 'z'])
+        actual = dig(src=src, path=['x', 'y', 'z'])
 
         # assess
         # When path navigation fails, post_processor (validate) is called on src
@@ -477,7 +478,7 @@ class TestParsingFunctions(unittest.TestCase):
         }
 
         # execute
-        actual = get_value(src=src, path=['level1', 'level2', 'level3', 'target'], exp=str)
+        actual = dig(src=src, path=['level1', 'level2', 'level3', 'target'], exp=str)
 
         # assess
         self.assertEqual(actual, expected)
@@ -493,7 +494,7 @@ class TestParsingFunctions(unittest.TestCase):
         }
 
         # execute
-        actual = get_value(src=src, path=['items', 1, 'data', 0], exp=str)
+        actual = dig(src=src, path=['items', 1, 'data', 0], exp=str)
 
         # assess
         self.assertEqual(actual, expected)
@@ -504,7 +505,7 @@ class TestParsingFunctions(unittest.TestCase):
         src: dict = {'numbers': [1, 2, 0, 4]}
 
         # execute
-        actual = get_value(src=src, path=['numbers', 2], exp=int)
+        actual = dig(src=src, path=['numbers', 2], exp=int)
 
         # assess
         self.assertEqual(actual, 0)
@@ -514,7 +515,7 @@ class TestParsingFunctions(unittest.TestCase):
         src: dict = {'data': [[], 'other', 'items']}
 
         # execute
-        actual = get_value(src=src, path=['data', 0], exp=list)
+        actual = dig(src=src, path=['data', 0], exp=list)
 
         # assess
         self.assertEqual(actual, [])
@@ -523,25 +524,23 @@ class TestParsingFunctions(unittest.TestCase):
     def test_should_return_default_on_missing_intermediate_key(self):
         # setup
         src: dict = {'a': {'b': 'value'}}
-        expected: str = 'default'
 
         # execute
-        actual = get_value(src=src, path=['x', 'y', 'z'], exp=str, default=expected)
+        actual = dig(src=src, path=['x', 'y', 'z'], exp=str, default='default')
 
         # assess
-        self.assertEqual(actual, expected)
+        self.assertIsNone(actual)
 
     # Unhappy path: get_value with mismatched index type
     def test_should_return_default_when_accessing_list_with_string_key(self):
         # setup
         src: dict = {'items': ['a', 'b', 'c']}
-        expected: str = 'default'
 
         # execute
-        actual = get_value(src=src, path=['items', 'invalid_index'], exp=str, default=expected)
+        actual = dig(src=src, path=['items', 'invalid_index'], exp=str, default='default')
 
         # assess
-        self.assertEqual(actual, expected)
+        self.assertIsNone(actual)
 
     # Happy path: get_value with no path (post-process source directly)
     def test_should_post_process_source_when_path_is_none(self):
@@ -549,7 +548,7 @@ class TestParsingFunctions(unittest.TestCase):
         value: str = 'test_string'
 
         # execute
-        actual = get_value(src=value, path=None, exp=str)
+        actual = dig(src=value, path=None, exp=str)
 
         # assess
         self.assertEqual(actual, value)
@@ -561,7 +560,7 @@ class TestParsingFunctions(unittest.TestCase):
         src: dict = {'key': expected}
 
         # execute
-        actual = get_value(src=src, path=['key'], post_processor=None)
+        actual = dig(src=src, path=['key'], post_processor=None)
 
         # assess
         self.assertEqual(actual, expected)
@@ -607,6 +606,56 @@ class TestParsingFunctions(unittest.TestCase):
 
         # assess
         self.assertIsNone(actual)
+
+    # pop: removes terminal key from dict
+    def test_should_pop_key_from_dict(self):
+        # setup
+        src: dict = {'a': 1, 'b': 2}
+
+        # execute
+        actual = dig(src=src, path=['a'], pop=True, exp=int)
+
+        # assess
+        self.assertEqual(actual, 1)
+        self.assertNotIn('a', src)
+        self.assertIn('b', src)
+
+    # pop: removes terminal index from list
+    def test_should_pop_index_from_list(self):
+        # setup
+        src: list = ['x', 'y', 'z']
+
+        # execute
+        actual = dig(src=src, path=[1], pop=True, exp=str)
+
+        # assess
+        self.assertEqual(actual, 'y')
+        self.assertEqual(src, ['x', 'z'])
+
+    # pop: removes terminal key from nested structure
+    def test_should_pop_nested_key(self):
+        # setup
+        src: dict = {'outer': {'inner': 42, 'keep': 99}}
+
+        # execute
+        actual = dig(src=src, path=['outer', 'inner'], pop=True, exp=int)
+
+        # assess
+        self.assertEqual(actual, 42)
+        self.assertNotIn('inner', src['outer'])
+        self.assertIn('keep', src['outer'])
+
+    # pop=False: does not mutate source
+    def test_should_not_pop_when_pop_is_false(self):
+        # setup
+        src: dict = {'a': 1}
+
+        # execute
+        actual = dig(src=src, path=['a'], pop=False, exp=int)
+
+        # assess
+        self.assertEqual(actual, 1)
+        self.assertIn('a', src)
 
 
 if __name__ == '__main__':

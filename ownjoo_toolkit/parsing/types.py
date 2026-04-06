@@ -9,7 +9,8 @@ This module provides functions to safely parse and validate values, including:
 
 import logging
 from datetime import datetime
-from typing import Any, Callable, Iterable, Optional, Type, TypeVar, Union
+from collections.abc import Mapping, Sequence
+from typing import Any, Callable, Optional, Type, TypeVar, Union
 
 T = TypeVar('T')
 R = TypeVar('R')
@@ -170,9 +171,10 @@ def validate(
     return result if is_valid_result else default
 
 
-def get_value(
-        src: Union[dict, Iterable],
+def dig(
+        src: Union[Mapping, Sequence],
         path: Union[None, int, list, str] = None,
+        pop: bool = False,
         post_processor: Callable[..., R] = validate,
         **kwargs
 ) -> Optional[R]:
@@ -186,20 +188,23 @@ def get_value(
         path: List of keys (str) and indices (int/float) to navigate the structure.
             Example: ['data', 0, 'value'] extracts src['data'][0]['value']
             If None, src is treated as a single value to post-process.
+        pop: If True, delete the terminal key/index from its container after extracting the value.
+            Mutates src in place. Default: False.
         post_processor: Callable to post-process the found value. Default: validate().
             If None, the raw value is returned without post-processing.
         **kwargs: Additional arguments passed to post_processor function.
 
     Returns:
         The post-processed value, or None if extraction fails or no post-processor is specified.
-        If path navigation fails (KeyError, IndexError, TypeError), logs and returns the post-processed src.
 
     Example:
         >>> src = {'users': [{'name': 'Alice'}, {'name': 'Bob'}]}
-        >>> get_value(src, path=['users', 0, 'name'])
+        >>> dig(src, path=['users', 0, 'name'])
         'Alice'
-        >>> get_value(src, path=['users', 1, 'name'], exp=str)
+        >>> dig(src, path=['users', 1, 'name'], exp=str)
         'Bob'
+        >>> dig(src, path=['users', 0, 'name'], pop=True)  # removes 'name' from src['users'][0]
+        'Alice'
     """
     result: Any = None
     remaining_path: Union[None, list] = None
@@ -224,9 +229,21 @@ def get_value(
 
     # Recursively continue if path remains and result is a dict/list
     if remaining_path and result is not None and isinstance(result, (dict, list)):
-        return get_value(src=result, path=remaining_path, post_processor=post_processor, **kwargs)
+        return dig(src=result, path=remaining_path, pop=pop, post_processor=post_processor, **kwargs)
+
+    # Pop the terminal value from its container if requested
+    if pop and keydex is not None and result is not None:
+        try:
+            del src[keydex]
+        except (IndexError, KeyError, TypeError) as exc_pop:
+            logger.warning(f'Failed to pop {keydex=} from {src=}: {exc_pop}')
 
     # Apply post-processor if result was found (not None) or if no result
     if callable(post_processor) and result is not None:
         return post_processor(result, **kwargs)
     return result  # return found value without post-processing
+
+
+def get_value(*args, **kwargs) -> Optional[R]:
+    """Deprecated alias for dig(). Use dig() instead."""
+    return dig(*args, **kwargs)

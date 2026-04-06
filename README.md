@@ -92,7 +92,7 @@ print(colored_text)
 ### Parsing & Validation
 
 ```python
-from ownjoo_toolkit import validate, get_datetime, str_to_list, get_value
+from ownjoo_toolkit import validate, get_datetime, str_to_list, dig
 
 # Validate and convert types
 result = validate('123', exp=int, converter=int)  # Returns: 123
@@ -109,8 +109,8 @@ dt = get_datetime('Mon, 15 Jan 2024 10:30:00 GMT')  # HTTP date
 
 # Extract and validate nested values
 data = {'users': [{'name': 'Alice'}, {'name': 'Bob'}]}
-name = get_value(data, path=['users', 0, 'name'])  # Returns: 'Alice'
-name = get_value(data, path=['users', 1, 'name'], exp=str)  # Returns: 'Bob'
+name = dig(data, path=['users', 0, 'name'])  # Returns: 'Alice'
+name = dig(data, path=['users', 1, 'name'], exp=str)  # Returns: 'Bob'
 ```
 
 ### Progress Logging
@@ -570,7 +570,7 @@ get_datetime('Mon, 15 Jan 2024 10:30:00 GMT')  # HTTP date
 get_datetime('01/15/2024 10:30:00', format_str='%m/%d/%Y %H:%M:%S')  # Custom
 ```
 
-#### `get_value(src, path=None, post_processor=validate, **kwargs)`
+#### `dig(src, path=None, post_processor=validate, **kwargs)`
 
 Extract and post-process a value from a nested data structure.
 
@@ -597,16 +597,43 @@ data = {
 }
 
 # Extract nested value
-name = get_value(data, path=['response', 'users', 0, 'name'])
+name = dig(data, path=['response', 'users', 0, 'name'])
 # Returns: 'Alice'
 
 # Extract with validation
-user = get_value(data, path=['response', 'users', 1], exp=dict)
+user = dig(data, path=['response', 'users', 1], exp=dict)
 # Returns: {'id': 2, 'name': 'Bob'}
 
 # Extract with custom post-processor
-count = get_value(data, path=['response', 'users'], post_processor=len)
+count = dig(data, path=['response', 'users'], post_processor=len)
 # Returns: 2
+```
+
+### `data` Module
+
+#### `FlexMixin`
+
+Mixin for flexible data handling. Provides dict-like access to instance and class attributes without the rigidity of `@dataclass`.
+
+**Methods:**
+
+- `get(k, default=None)` — Return attribute value by name, or default if not set
+- `to_dict()` — Return all non-private attributes (instance + class hierarchy) as a dict
+
+**Example:**
+
+```python
+from ownjoo_toolkit.data.flex import FlexMixin
+
+class MyModel(FlexMixin):
+    kind: str = 'model'
+
+obj = MyModel(name='Alice', score=42)
+obj.get('name')           # 'Alice'
+obj.get('missing', 'n/a') # 'n/a'
+obj.get('score', 99)      # 42  (falsy-safe — 0, False, '' all work correctly)
+obj.to_dict()             # {'kind': 'model', 'name': 'Alice', 'score': 42}
+repr(obj)                 # MyModel({'kind': 'model', 'name': 'Alice', 'score': 42})
 ```
 
 ### `logging` Module
