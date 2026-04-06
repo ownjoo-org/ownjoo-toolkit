@@ -11,14 +11,15 @@ This library is the single source of truth for shared utilities across ownjoo-or
 - **`parsing`** — Type validation, datetime conversion, nested data extraction
 - **`logging`** — Progress tracking decorators for generator functions
 - **`console`** — Terminal and console output utilities (stdout, stderr, formatting)
-- **`asynchronous`** — Async utilities (in development)
+- **`data`** — Flexible data handling mixins
+- **`asynchronous`** — Async utilities (chunking, generators)
 
 ## Installation
 
 Install from PyPI:
 
 ```bash
-pip install ownjoo-toolkit
+pip install oj-toolkit
 ```
 
 Or install from the repository:
@@ -87,6 +88,31 @@ output.out_colored("Cyan background", color=Color.BG_CYAN)
 from oj_toolkit.console import Color
 colored_text = Color.colorize("Important", Color.BOLD + Color.RED)
 print(colored_text)
+```
+
+### Chainable Colored Text
+
+```python
+from oj_toolkit import Output
+
+output = Output()
+
+# Build multi-color lines with a fluent API
+output.segment().red("ERROR: ").white("something went wrong").cyan(" (code: 500)").out()
+
+# Chain to stderr
+output.segment().bold("Status: ").green("OK").reset(" (2.5s)").err()
+
+# Build a ColoredText independently
+from oj_toolkit import ColoredText
+
+text = (ColoredText()
+    .bold("Build: ")
+    .green("passed")
+    .reset(" | ")
+    .yellow("warnings: 3")
+)
+print(text)  # Rendered with ANSI codes
 ```
 
 ### Parsing & Validation
@@ -270,6 +296,27 @@ output.out_red("Error occurred")
 output.err_yellow("Warning: deprecated")
 ```
 
+##### `segment() → ColoredText`
+
+Create a chainable `ColoredText` builder bound to this output's streams.
+
+**Example:**
+
+```python
+output = Output()
+output.segment().red("ERROR: ").white("critical failure").out()
+output.segment().yellow("WARNING").cyan(" - deprecated").err()
+
+# Complex multi-color line
+(output.segment()
+    .bold("Status: ")
+    .green("OK")
+    .reset(" (")
+    .cyan("2.5s")
+    .reset(")")
+    .out())
+```
+
 #### `Color` - ANSI Color Constants and Utilities
 
 Static class providing ANSI color codes for terminal output.
@@ -315,6 +362,54 @@ colored = Color.colorize("text", Color.GREEN, reset=False)
 Color.BOLD + Color.RED          # Bold red text
 Color.DIM + Color.YELLOW        # Dim yellow text
 Color.BOLD + Color.BG_BLUE      # Bold text on blue background
+```
+
+#### `ColoredText` - Chainable Colored Text Builder
+
+Accumulates text segments with associated colors and renders them as a single ANSI-coded string.
+
+**Constructor:** `ColoredText(stdout=None, stderr=None)`
+
+**Chaining methods** — each returns `self` for fluent chaining:
+
+- `add(text, color='')` — Add a segment with an explicit color code
+- `red(text)`, `green(text)`, `yellow(text)`, `blue(text)` — Shorthand color methods
+- `magenta(text)`, `cyan(text)`, `white(text)` — Additional color shorthands
+- `bold(text)`, `dim(text)` — Style shorthands
+- `reset(text)` — Add text with `Color.RESET` applied
+- `from_iter(iterable)` — Consume an iterable of `(text, color)` tuples
+
+**Output methods:**
+
+- `out(sep='', end='\n', flush=False)` — Print to stdout
+- `err(sep='', end='\n', flush=False)` — Print to stderr
+- `str(text)` — Render as ANSI-coded string
+- `iter(text)` — Iterate over `(text, color)` segment tuples
+
+**Example:**
+
+```python
+from oj_toolkit import ColoredText, Color
+
+# Fluent chaining
+text = (ColoredText()
+    .red("ERROR: ")
+    .white("something went wrong")
+    .cyan(" (code: 500)")
+)
+print(text)  # Renders with ANSI codes
+
+# Consume a generator of (text, color) tuples
+def color_gen():
+    yield ("Status: ", Color.BOLD)
+    yield ("OK", Color.GREEN)
+
+text = ColoredText().from_iter(color_gen())
+text.out()
+
+# Iterate over segments
+for segment_text, color in text:
+    print(f"{color}{segment_text}\033[0m", end="")
 ```
 
 ### Formatting Utilities
@@ -694,6 +789,32 @@ async def fetch_items():
 
 async for item in fetch_items():
     await process(item)
+```
+
+### `asynchronous` Module
+
+#### `a_chunks(chunk_size, async_iterable)`
+
+Yield successive fixed-size chunks from an async iterable.
+
+- **Parameters:**
+  - `chunk_size` (int): Maximum number of items per chunk
+  - `async_iterable` (AsyncIterator[T]): The async iterable to chunk
+
+- **Returns:** `AsyncGenerator[List[T], None]` — yields lists of up to `chunk_size` elements. The final chunk may be smaller if the iterable is exhausted.
+
+**Example:**
+
+```python
+from oj_toolkit.asynchronous import a_chunks
+
+async def process():
+    async def records():
+        for i in range(250):
+            yield i
+
+    async for batch in a_chunks(100, records()):
+        await bulk_insert(batch)  # batches of 100, 100, 50
 ```
 
 ## Development
