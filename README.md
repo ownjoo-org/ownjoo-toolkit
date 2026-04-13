@@ -900,6 +900,57 @@ async for item in fetch_items():
     await process(item)
 ```
 
+#### `BroadcastHandler(maxsize=500)`
+
+`logging.Handler` subclass that forwards log records to all active `asyncio.Queue` subscribers. Designed for log-streaming use cases such as SSE endpoints.
+
+- **Parameters:**
+  - `maxsize` (int): Maximum queue depth per subscriber. Slow/stalled consumers are dropped rather than blocking the logger. Default: `500`
+
+- **Methods:**
+  - `subscribe() → asyncio.Queue[str]` — Register a new client; returns its dedicated queue
+  - `unsubscribe(q)` — Deregister a queue (call on client disconnect)
+  - `emit(record)` — Formats and delivers the record to all subscriber queues
+
+**Thread-safety note:** `emit()` calls `asyncio.Queue.put_nowait` directly, which is safe when called from the event loop thread (i.e., inside coroutines). If you log from background threads, subclass and use `loop.call_soon_threadsafe` instead.
+
+**Example (FastAPI SSE endpoint):**
+
+```python
+import logging
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from oj_toolkit.logging import BroadcastHandler
+
+log_broadcast = BroadcastHandler()
+
+@asynccontextmanager
+async def lifespan(app):
+    logging.getLogger().addHandler(log_broadcast)
+    yield
+    logging.getLogger().removeHandler(log_broadcast)
+
+app = FastAPI(lifespan=lifespan)
+
+@app.get("/logs")
+async def stream_logs():
+    q = log_broadcast.subscribe()
+
+    async def _generate():
+        try:
+            while True:
+                msg = await q.get()
+                lines = msg.replace("\r\n", "\n").split("\n")
+                yield "".join(f"data: {line}\n" for line in lines) + "\n"
+        except asyncio.CancelledError:
+            pass
+        finally:
+            log_broadcast.unsubscribe(q)
+
+    return StreamingResponse(_generate(), media_type="text/event-stream")
+```
+
 ### `asynchronous` Module
 
 #### `a_chunks(chunk_size, async_iterable)`

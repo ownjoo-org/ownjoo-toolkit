@@ -9,12 +9,20 @@ Configure once at application startup:
 Generator decorators:
 
     from oj_toolkit.logging import timed_generator, timed_async_generator
+
+Log streaming (asyncio apps):
+
+    from oj_toolkit.logging import BroadcastHandler
+    handler = BroadcastHandler()
+    logging.getLogger().addHandler(handler)
+    q = handler.subscribe()   # one queue per connected client
 """
 
 from oj_toolkit.logging.config import configure_logging
 from oj_toolkit.logging.consts import LOG_FORMAT
 from oj_toolkit.logging.decorators import timed_generator, timed_async_generator
 from oj_toolkit.logging.formatters import ColoredHumanFormatter, HumanFormatter, JsonFormatter
+from oj_toolkit.logging.handlers import BroadcastHandler
 
 __all__ = [
     'configure_logging',
@@ -24,4 +32,5 @@ __all__ = [
     'ColoredHumanFormatter',
     'HumanFormatter',
     'JsonFormatter',
+    'BroadcastHandler',
 ]
