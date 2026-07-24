@@ -750,6 +750,10 @@ Recursively navigates through nested dicts and lists using a path of keys/indice
 
 - **Returns:** Post-processed value, or None if extraction fails
 
+> **Type checkers:** pass `exp=<type>` to get a precise `<type> | None` return type instead of `Any`
+> (`dig(data, path=[...], exp=str)` type-checks as `str | None`). Passing `post_processor=None` types
+> as `Any` (raw, unvalidated value). A custom `post_processor` types as that callable's own return type.
+
 **Example:**
 
 ```python

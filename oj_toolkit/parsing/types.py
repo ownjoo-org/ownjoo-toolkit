@@ -10,7 +10,7 @@ This module provides functions to safely parse and validate values, including:
 import logging
 from datetime import datetime
 from collections.abc import Mapping, Sequence
-from typing import Any, Callable, Type, TypeVar
+from typing import Any, Callable, Type, TypeVar, overload
 
 T = TypeVar('T')
 R = TypeVar('R')
@@ -171,13 +171,45 @@ def validate(
     return result if is_valid_result else default
 
 
+@overload
+def dig(
+        src: Mapping | Sequence,
+        path: int | list | str | None = None,
+        pop: bool = False,
+        *,
+        exp: Type[T],
+        post_processor: Callable[..., Any] = validate,
+        **kwargs: Any,
+) -> T | None: ...
+
+
+@overload
+def dig(
+        src: Mapping | Sequence,
+        path: int | list | str | None = None,
+        pop: bool = False,
+        post_processor: None = None,
+        **kwargs: Any,
+) -> Any: ...
+
+
+@overload
 def dig(
         src: Mapping | Sequence,
         path: int | list | str | None = None,
         pop: bool = False,
         post_processor: Callable[..., R] = validate,
-        **kwargs
-) -> R | None:
+        **kwargs: Any,
+) -> R | None: ...
+
+
+def dig(
+        src: Mapping | Sequence,
+        path: int | list | str | None = None,
+        pop: bool = False,
+        post_processor: Callable[..., Any] | None = validate,
+        **kwargs: Any,
+) -> Any:
     """Extract and post-process a value from a nested data structure.
 
     Recursively navigates through nested dicts and lists using a path of keys/indices,
@@ -192,7 +224,9 @@ def dig(
             Mutates src in place. Default: False.
         post_processor: Callable to post-process the found value. Default: validate().
             If None, the raw value is returned without post-processing.
-        **kwargs: Additional arguments passed to post_processor function.
+        **kwargs: Additional arguments passed to post_processor function. Pass exp=<type> to have
+            the default validate() post-processor -- and this function's inferred return type --
+            narrow to Optional[<type>] instead of Any.
 
     Returns:
         The post-processed value, or None if extraction fails or no post-processor is specified.
@@ -201,7 +235,7 @@ def dig(
         >>> src = {'users': [{'name': 'Alice'}, {'name': 'Bob'}]}
         >>> dig(src, path=['users', 0, 'name'])
         'Alice'
-        >>> dig(src, path=['users', 1, 'name'], exp=str)
+        >>> dig(src, path=['users', 1, 'name'], exp=str)  # return type inferred as str | None
         'Bob'
         >>> dig(src, path=['users', 0, 'name'], pop=True)  # removes 'name' from src['users'][0]
         'Alice'
