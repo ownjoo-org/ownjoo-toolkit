@@ -11,7 +11,7 @@ Centralized utilities for all ownjoo-org projects, including:
   error can disappear silently (diagnostics module)
 
 Usage:
-    from oj_toolkit import validate, get_datetime, str_to_list, dig
+    from oj_toolkit import validate, get_datetime, str_to_list, dig, dig_many, Digger
     from oj_toolkit import timed_generator, timed_async_generator
     from oj_toolkit import Output, Color, ColoredText
     from oj_toolkit import Table, Box, status_line, progress_bar
@@ -33,7 +33,7 @@ from oj_toolkit.console import (
 )
 from oj_toolkit.diagnostics import install_exception_visibility
 from oj_toolkit.logging import timed_async_generator, timed_generator
-from oj_toolkit.parsing import validate, get_datetime, dig, str_to_list
+from oj_toolkit.parsing import validate, get_datetime, dig, dig_many, Digger, str_to_list
 
 __all__ = [
     'timed_async_generator',
@@ -42,6 +42,8 @@ __all__ = [
     'validate',
     'get_datetime',
     'dig',
+    'dig_many',
+    'Digger',
     'str_to_list',
     'Output',
     'Color',

@@ -118,7 +118,7 @@ print(text)  # Rendered with ANSI codes
 ### Parsing & Validation
 
 ```python
-from oj_toolkit import validate, get_datetime, str_to_list, dig
+from oj_toolkit import validate, get_datetime, str_to_list, dig, dig_many, Digger
 
 # Validate and convert types
 result = validate('123', exp=int, converter=int)  # Returns: 123
@@ -133,11 +133,30 @@ dt = get_datetime('2024-01-15T10:30:00')  # ISO 8601
 dt = get_datetime(1705318200)  # Unix timestamp
 dt = get_datetime('Mon, 15 Jan 2024 10:30:00 GMT')  # HTTP date
 
-# Extract and validate nested values
+# Extract and validate nested values using a jmespath expression
 data = {'users': [{'name': 'Alice'}, {'name': 'Bob'}]}
-name = dig(data, path=['users', 0, 'name'])  # Returns: 'Alice'
-name = dig(data, path=['users', 1, 'name'], exp=str)  # Returns: 'Bob'
+name = dig(data, path='users[0].name', exp=str)  # Returns: 'Alice'
+names = dig(data, path='users[*].name', exp=list)  # Returns: ['Alice', 'Bob']
+
+# Fallback chain: first matching path wins (handy for optional/renamed fields)
+name = dig(data, path=['users[0].nickname', 'users[0].name'], exp=str)  # Returns: 'Alice'
+
+# Extract several fields in one call
+fields = dig_many(
+    data,
+    paths={'first_name': 'users[0].name', 'second_name': 'users[1].name'},
+    post_processor=None,  # skip validate() and return raw matches
+)
+# Returns: {'first_name': 'Alice', 'second_name': 'Bob'}
+
+# Bind a path once, reuse it against many objects
+get_name = Digger(path='name', exp=str, default='')
+[get_name(user) for user in data['users']]  # Returns: ['Alice', 'Bob']
 ```
+
+> **Note:** `dig()`'s default `post_processor` (`validate()`) only accepts a value if you pass
+> `exp=<type>` -- without it, validation always fails and you get `default` back (`None` unless set).
+> Pass `exp=` for a real value, or `post_processor=None` to skip validation and get the raw match.
 
 ### Logging Setup
 
@@ -736,23 +755,37 @@ get_datetime('Mon, 15 Jan 2024 10:30:00 GMT')  # HTTP date
 get_datetime('01/15/2024 10:30:00', format_str='%m/%d/%Y %H:%M:%S')  # Custom
 ```
 
-#### `dig(src, path=None, post_processor=validate, **kwargs)`
+#### `dig(src, path=None, pop=False, post_processor=validate, **kwargs)`
 
-Extract and post-process a value from a nested data structure.
-
-Recursively navigates through nested dicts and lists using a path of keys/indices.
+Extract and post-process a value from a nested data structure, using [jmespath](https://jmespath.org/)
+under the hood (`jmespath` is a required dependency).
 
 - **Parameters:**
-  - `src` (Union[dict, Iterable]): Data structure to navigate
-  - `path` (Union[None, int, list, str]): List of keys/indices to navigate. Example: ['data', 0, 'value']
-  - `post_processor` (Callable): Function to post-process the found value. Default: validate()
-  - `**kwargs`: Passed to post_processor
+  - `src` (Mapping | Sequence): Data structure to navigate
+  - `path` (int | str | list | None):
+    - `str` — a jmespath expression, e.g. `'users[0].name'`, `'users[*].name'`, `'users[?id==\`2\`].name'`
+    - `int` — shorthand for a single top-level index, e.g. `1` is equivalent to `'[1]'`
+    - `list[int | str]` — a fallback chain: each candidate is tried in order and the first
+      one whose result isn't `None` wins (handy for optional/renamed fields)
+    - `None` — treat `src` itself as the value to post-process
+  - `pop` (bool): If `True`, delete the terminal key/index of the *winning* expression from
+    its container after extracting the value (mutates `src` in place). Only honored when that
+    expression's terminal segment is unambiguous (no wildcards, filters, or projections) --
+    otherwise it's refused with a logged warning and the value is still returned unpopped.
+  - `post_processor` (Callable): Function to post-process the found value. Default: `validate()`.
+    Pass `None` to skip post-processing and get the raw match.
+  - `**kwargs`: Passed to `post_processor`
 
-- **Returns:** Post-processed value, or None if extraction fails
+- **Returns:** Post-processed value, or `None` if extraction fails, no candidate path matches, or
+  no post-processor is specified and nothing was found
 
 > **Type checkers:** pass `exp=<type>` to get a precise `<type> | None` return type instead of `Any`
-> (`dig(data, path=[...], exp=str)` type-checks as `str | None`). Passing `post_processor=None` types
+> (`dig(data, path='...', exp=str)` type-checks as `str | None`). Passing `post_processor=None` types
 > as `Any` (raw, unvalidated value). A custom `post_processor` types as that callable's own return type.
+
+> **Passing no `exp`:** the default `validate()` post-processor only accepts a value when you give
+> it `exp=<type>` -- without one, validation always fails and you get `default` back (`None` unless
+> set). Either pass `exp=`, or `post_processor=None` to bypass validation entirely.
 
 **Example:**
 
@@ -767,16 +800,70 @@ data = {
 }
 
 # Extract nested value
-name = dig(data, path=['response', 'users', 0, 'name'])
+name = dig(data, path='response.users[0].name', exp=str)
 # Returns: 'Alice'
 
 # Extract with validation
-user = dig(data, path=['response', 'users', 1], exp=dict)
+user = dig(data, path='response.users[1]', exp=dict)
 # Returns: {'id': 2, 'name': 'Bob'}
 
-# Extract with custom post-processor
-count = dig(data, path=['response', 'users'], post_processor=len)
+# Extract with custom post-processor (no exp needed -- len() isn't validate())
+count = dig(data, path='response.users', post_processor=len)
 # Returns: 2
+
+# jmespath's full expression syntax is available -- wildcards, filters, functions, etc.
+names = dig(data, path='response.users[*].name', exp=list)
+# Returns: ['Alice', 'Bob']
+
+# Fallback chain: try a renamed/optional field first, fall back to the old one
+name = dig(data, path=['response.users[0].display_name', 'response.users[0].name'], exp=str)
+# Returns: 'Alice'
+```
+
+#### `dig_many(src, paths, **common_kwargs)`
+
+Extract several named fields from `src` in one call.
+
+- **Parameters:**
+  - `src` (Mapping | Sequence): Data structure to navigate
+  - `paths` (Mapping[str, Any]): Maps an output key to either a `dig()` path (uses
+    `common_kwargs`) or a dict of `dig()` kwargs (must include `'path'`) overriding
+    `common_kwargs` for just that key
+  - `**common_kwargs`: Default `dig()` kwargs (`exp`, `default`, `converter`, `validator`,
+    `post_processor`, `pop`) applied to every key that doesn't override them
+
+- **Returns:** A dict with the same keys as `paths`, each value produced by the corresponding `dig()` call
+
+**Example:**
+
+```python
+data = {'user': {'name': 'Alice', 'age': '30'}}
+
+fields = dig_many(
+    data,
+    paths={
+        'name': 'user.name',
+        'age': {'path': 'user.age', 'exp': int, 'converter': int},
+    },
+    exp=str,
+)
+# Returns: {'name': 'Alice', 'age': 30}
+```
+
+#### `Digger(path=None, pop=False, post_processor=validate, **kwargs)`
+
+A pre-bound, reusable `dig()` call. Validates/compiles the jmespath expression once at
+construction (failing fast on a bad expression instead of on first use), then can be called
+like a function against any number of `src` objects without repeating `path`/`exp`/kwargs.
+
+**Example:**
+
+```python
+records = [{'user': {'name': 'Alice'}}, {'user': {'name': 'Bob'}}]
+
+get_name = Digger(path='user.name', exp=str, default='')
+[get_name(record) for record in records]
+# Returns: ['Alice', 'Bob']
 ```
 
 ### `data` Module

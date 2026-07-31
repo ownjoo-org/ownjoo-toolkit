@@ -8,9 +8,13 @@ This module provides functions to safely parse and validate values, including:
 """
 
 import logging
+import re
 from datetime import datetime
 from collections.abc import Mapping, Sequence
+from functools import lru_cache
 from typing import Any, Callable, Type, TypeVar, overload
+
+import jmespath
 
 T = TypeVar('T')
 R = TypeVar('R')
@@ -18,6 +22,7 @@ R = TypeVar('R')
 from oj_toolkit.parsing.consts import DEFAULT_CONVERTER, DEFAULT_SEPARATOR, DEFAULT_VALIDATOR, TimeFormats
 
 logger = logging.getLogger(__name__)
+
 
 def str_to_list(v: str | None = None, separator: str = DEFAULT_SEPARATOR) -> list[str] | None:
     """Convert a string to a list by splitting on a separator.
@@ -171,13 +176,81 @@ def validate(
     return result if is_valid_result else default
 
 
+_JMESPATH_INSTALL_HINT = "jmespath is not installed. Install it with: pip install 'oj-toolkit[jmespath]'"
+
+# Characters that make a jmespath expression ambiguous to pop from (filters, wildcards,
+# pipes, flatten/multi-select, raw-string literals) -- pop is refused if any are present.
+_JMESPATH_POP_UNSAFE_CHARS = frozenset('*?|&`{}')
+
+_JMESPATH_TERMINAL_RE = re.compile(
+    r'(?:^|\.)"((?:[^"\\]|\\.)*)"$'
+    r'|(?:^|\.)([A-Za-z_][A-Za-z0-9_]*)$'
+    r'|\["((?:[^"\\]|\\.)*)"]$'
+    r'|\[(\d+)]$'
+)
+
+
+@lru_cache(maxsize=256)
+def _compile_jmespath(expr: str) -> Any:
+    """Compile (and cache) a jmespath expression string."""
+    return jmespath.compile(expr)
+
+
+def _jmespath_terminal(expr: str) -> tuple[str | None, str | int] | None:
+    """Split a jmespath expression into (parent_expr, terminal_key) for pop, if it's safe to do so.
+
+    Returns None if the expression's last segment can't be unambiguously isolated
+    (e.g. it ends in a filter, wildcard, or projection) -- pop is refused in that case.
+    """
+    if any(c in _JMESPATH_POP_UNSAFE_CHARS for c in expr):
+        return None
+    match = _JMESPATH_TERMINAL_RE.search(expr)
+    if not match:
+        return None
+    quoted, identifier, bracket_quoted, index = match.groups()
+    parent_expr = expr[:match.start()] or None
+    if index is not None:
+        return parent_expr, int(index)
+    raw_key = quoted if quoted is not None else (identifier if identifier is not None else bracket_quoted)
+    return parent_expr, raw_key.replace('\\"', '"').replace('\\\\', '\\')
+
+
+def _path_to_expr(path: int | str) -> str:
+    """Normalize a single path segment (int shorthand or raw jmespath string) into an expression."""
+    if isinstance(path, str):
+        return path
+    if isinstance(path, int) and not isinstance(path, bool):
+        return f'[{path}]'
+    raise TypeError(f'path must be an int, str, a list of these, or None; got {type(path).__name__}')
+
+
+def _dig_expr(src: Mapping | Sequence, expr: str, pop: bool) -> Any:
+    """Evaluate one jmespath expression against src, optionally popping the terminal match."""
+    result = _compile_jmespath(expr).search(src)
+    if pop and result is not None:
+        terminal = _jmespath_terminal(expr)
+        if terminal is None:
+            logger.warning(f'Refusing to pop ambiguous jmespath expression: {expr=}')
+        else:
+            parent_expr, keydex = terminal
+            parent = src if parent_expr is None else _compile_jmespath(parent_expr).search(src)
+            try:
+                del parent[keydex]
+            except (IndexError, KeyError, TypeError) as exc_pop:
+                logger.warning(f'Failed to pop {keydex=} from {parent=}: {exc_pop}')
+    return result
+
+
 @overload
-def dig(
+def dig(  # pylint: disable=too-many-arguments
         src: Mapping | Sequence,
-        path: int | list | str | None = None,
+        path: int | str | list[int | str] | None = None,
         pop: bool = False,
         *,
         exp: Type[T],
+        default: T | None = None,
+        converter: Callable[..., Any] | None = None,
+        validator: Callable[..., bool] | None = DEFAULT_VALIDATOR,
         post_processor: Callable[..., Any] = validate,
         **kwargs: Any,
 ) -> T | None: ...
@@ -186,7 +259,7 @@ def dig(
 @overload
 def dig(
         src: Mapping | Sequence,
-        path: int | list | str | None = None,
+        path: int | str | list[int | str] | None = None,
         pop: bool = False,
         post_processor: None = None,
         **kwargs: Any,
@@ -196,7 +269,7 @@ def dig(
 @overload
 def dig(
         src: Mapping | Sequence,
-        path: int | list | str | None = None,
+        path: int | str | list[int | str] | None = None,
         pop: bool = False,
         post_processor: Callable[..., R] = validate,
         **kwargs: Any,
@@ -205,23 +278,29 @@ def dig(
 
 def dig(
         src: Mapping | Sequence,
-        path: int | list | str | None = None,
+        path: int | str | list[int | str] | None = None,
         pop: bool = False,
         post_processor: Callable[..., Any] | None = validate,
         **kwargs: Any,
 ) -> Any:
     """Extract and post-process a value from a nested data structure.
 
-    Recursively navigates through nested dicts and lists using a path of keys/indices,
-    then post-processes the result with a callable (default: validate).
+    Navigates through nested dicts and lists using a jmespath expression string (or a
+    bare int as shorthand for a single top-level index), then post-processes the result
+    with a callable (default: validate).
 
     Args:
         src: A dict or list to navigate. If path is None, treated as a single value to post-process.
-        path: List of keys (str) and indices (int/float) to navigate the structure.
-            Example: ['data', 0, 'value'] extracts src['data'][0]['value']
-            If None, src is treated as a single value to post-process.
+        path: A jmespath expression string (e.g. 'users[0].name', 'users[*].name'), a bare
+            int as shorthand for a single top-level index (e.g. 1 is equivalent to '[1]'),
+            a list of these tried in order as fallbacks (the first one whose result is not
+            None wins -- useful for optional/renamed fields), or None to treat src itself as
+            the value to post-process.
         pop: If True, delete the terminal key/index from its container after extracting the value.
-            Mutates src in place. Default: False.
+            Mutates src in place. Default: False. Only honored when the winning expression's
+            terminal segment is an unambiguous key/index (no wildcards, filters, or
+            projections) -- otherwise it's refused with a warning and the value is still
+            returned unpopped.
         post_processor: Callable to post-process the found value. Default: validate().
             If None, the raw value is returned without post-processing.
         **kwargs: Additional arguments passed to post_processor function. Pass exp=<type> to have
@@ -233,46 +312,100 @@ def dig(
 
     Example:
         >>> src = {'users': [{'name': 'Alice'}, {'name': 'Bob'}]}
-        >>> dig(src, path=['users', 0, 'name'])
+        >>> dig(src, path='users[0].name', exp=str)
         'Alice'
-        >>> dig(src, path=['users', 1, 'name'], exp=str)  # return type inferred as str | None
+        >>> dig(src, path='users[1].name', exp=str)  # return type inferred as str | None
         'Bob'
-        >>> dig(src, path=['users', 0, 'name'], pop=True)  # removes 'name' from src['users'][0]
+        >>> dig(src, path='users[*].name', exp=list)
+        ['Alice', 'Bob']
+        >>> dig(src, path=['users[0].nickname', 'users[0].name'], exp=str)  # fallback chain
         'Alice'
+        >>> dig(src, path='users[0].name', pop=True, exp=str)  # removes 'name' from src['users'][0]
+        'Alice'
+        >>> src['users'][0]
+        {}
     """
-    result: Any = None
-    remaining_path: list | None = None
-
-    # Extract the first key/index without mutating the original path
-    if path and isinstance(path, list) and len(path) > 0:
-        keydex = path[0]
-        remaining_path = path[1:]
-    else:
-        keydex = None
-        remaining_path = None
-
-    # Try to navigate to the next level
-    if keydex is not None:
-        try:
-            result = src[keydex]
-        except (IndexError, KeyError, TypeError) as exc_val:
-            logger.debug(f'ERROR extracting {path=} from {src=}: {exc_val=}', exc_info=True)
-            result = None
-    else:
+    if path is None:
         result = src
-
-    # Recursively continue if path remains and result is a dict/list
-    if remaining_path and result is not None and isinstance(result, (dict, list)):
-        return dig(src=result, path=remaining_path, pop=pop, post_processor=post_processor, **kwargs)
-
-    # Pop the terminal value from its container if requested
-    if pop and keydex is not None and result is not None:
-        try:
-            del src[keydex]
-        except (IndexError, KeyError, TypeError) as exc_pop:
-            logger.warning(f'Failed to pop {keydex=} from {src=}: {exc_pop}')
+    elif isinstance(path, (list, tuple)):
+        result = None
+        for candidate in path:
+            candidate_result = _dig_expr(src, _path_to_expr(candidate), pop)
+            if candidate_result is not None:
+                result = candidate_result
+                break
+    else:
+        result = _dig_expr(src, _path_to_expr(path), pop)
 
     # Apply post-processor if result was found (not None) or if no result
     if callable(post_processor) and result is not None:
         return post_processor(result, **kwargs)
     return result  # return found value without post-processing
+
+
+def dig_many(
+        src: Mapping | Sequence,
+        paths: Mapping[str, Any],
+        **common_kwargs: Any,
+) -> dict[str, Any]:
+    """Extract several named fields from src in one call.
+
+    Args:
+        src: A dict or list to navigate.
+        paths: Maps an output key to either a dig() path (int/str/list, using common_kwargs
+            for exp/default/etc.) or a mapping of dig() kwargs (must include 'path') to
+            override common_kwargs for that one key.
+        **common_kwargs: Default dig() kwargs (exp, default, converter, validator,
+            post_processor, pop) applied to every key that doesn't override them.
+
+    Returns:
+        A dict with the same keys as paths, each value produced by the corresponding dig() call.
+
+    Example:
+        >>> src = {'user': {'name': 'Alice', 'age': '30'}}
+        >>> dig_many(
+        ...     src,
+        ...     paths={'name': 'user.name', 'age': {'path': 'user.age', 'exp': int, 'converter': int}},
+        ...     exp=str,
+        ... )
+        {'name': 'Alice', 'age': 30}
+    """
+    result: dict[str, Any] = {}
+    for key, spec in paths.items():
+        call_kwargs = {**common_kwargs, **spec} if isinstance(spec, Mapping) else {**common_kwargs, 'path': spec}
+        result[key] = dig(src, **call_kwargs)
+    return result
+
+
+class Digger:
+    """A pre-bound, reusable dig() call -- build once, invoke against many src objects.
+
+    Validates/compiles the path up front (failing fast on a bad jmespath expression
+    instead of on first use) and avoids re-passing the same path/exp/post_processor/kwargs
+    on every call.
+
+    Example:
+        >>> get_name = Digger(path='user.name', exp=str, default='')
+        >>> [get_name(record) for record in records]  # doctest: +SKIP
+    """
+
+    def __init__(
+            self,
+            path: int | str | list[int | str] | None = None,
+            pop: bool = False,
+            post_processor: Callable[..., Any] | None = validate,
+            **kwargs: Any,
+    ) -> None:
+        self.path = path
+        self.pop = pop
+        self.post_processor = post_processor
+        self.kwargs = kwargs
+        for candidate in (path if isinstance(path, (list, tuple)) else [path]):
+            if candidate is not None:
+                _compile_jmespath(_path_to_expr(candidate))
+
+    def __call__(self, src: Mapping | Sequence) -> Any:
+        return dig(src, path=self.path, pop=self.pop, post_processor=self.post_processor, **self.kwargs)
+
+    def __repr__(self) -> str:
+        return f'Digger(path={self.path!r}, pop={self.pop!r})'

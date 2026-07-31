@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 from oj_toolkit.parsing.consts import TimeFormats
-from oj_toolkit.parsing.types import get_datetime, dig, str_to_list, validate
+from oj_toolkit.parsing.types import get_datetime, dig, dig_many, Digger, str_to_list, validate
 
 
 class TestParsingFunctions(unittest.TestCase):
@@ -180,7 +180,7 @@ class TestParsingFunctions(unittest.TestCase):
         expected: str = 'blah'
 
         # execute
-        actual = dig(src=['', [expected]], path=[1, 0], exp=str, default='')
+        actual = dig(src=['', [expected]], path='[1][0]', exp=str, default='')
 
         # assess
         self.assertEqual(expected, actual)
@@ -192,7 +192,7 @@ class TestParsingFunctions(unittest.TestCase):
         expected: str = 'blah'
 
         # execute
-        actual = dig(src={'first': 'a', 'second': [expected]}, path=['second', 0], exp=str)
+        actual = dig(src={'first': 'a', 'second': [expected]}, path='second[0]', exp=str)
 
         # assess
         self.assertEqual(expected, actual)
@@ -240,11 +240,11 @@ class TestParsingFunctions(unittest.TestCase):
         src: dict = {'a': {'b': 'c'}}
 
         # execute
-        actual = dig(src=src, path=['x', 'y', 'z'])
+        actual = dig(src=src, path='x.y.z')
 
         # assess
-        # When path navigation fails, post_processor (validate) is called on src
-        # validate returns None when src doesn't match expected type
+        # When the path doesn't resolve, jmespath returns None and the None-guard
+        # skips post_processor entirely (validate() is never called)
         self.assertIsNone(actual)
 
         # teardown
@@ -478,7 +478,7 @@ class TestParsingFunctions(unittest.TestCase):
         }
 
         # execute
-        actual = dig(src=src, path=['level1', 'level2', 'level3', 'target'], exp=str)
+        actual = dig(src=src, path='level1.level2.level3.target', exp=str)
 
         # assess
         self.assertEqual(actual, expected)
@@ -494,7 +494,7 @@ class TestParsingFunctions(unittest.TestCase):
         }
 
         # execute
-        actual = dig(src=src, path=['items', 1, 'data', 0], exp=str)
+        actual = dig(src=src, path='items[1].data[0]', exp=str)
 
         # assess
         self.assertEqual(actual, expected)
@@ -505,7 +505,7 @@ class TestParsingFunctions(unittest.TestCase):
         src: dict = {'numbers': [1, 2, 0, 4]}
 
         # execute
-        actual = dig(src=src, path=['numbers', 2], exp=int)
+        actual = dig(src=src, path='numbers[2]', exp=int)
 
         # assess
         self.assertEqual(actual, 0)
@@ -515,7 +515,7 @@ class TestParsingFunctions(unittest.TestCase):
         src: dict = {'data': [[], 'other', 'items']}
 
         # execute
-        actual = dig(src=src, path=['data', 0], exp=list)
+        actual = dig(src=src, path='data[0]', exp=list)
 
         # assess
         self.assertEqual(actual, [])
@@ -526,7 +526,7 @@ class TestParsingFunctions(unittest.TestCase):
         src: dict = {'a': {'b': 'value'}}
 
         # execute
-        actual = dig(src=src, path=['x', 'y', 'z'], exp=str, default='default')
+        actual = dig(src=src, path='x.y.z', exp=str, default='default')
 
         # assess
         self.assertIsNone(actual)
@@ -537,7 +537,7 @@ class TestParsingFunctions(unittest.TestCase):
         src: dict = {'items': ['a', 'b', 'c']}
 
         # execute
-        actual = dig(src=src, path=['items', 'invalid_index'], exp=str, default='default')
+        actual = dig(src=src, path='items.invalid_index', exp=str, default='default')
 
         # assess
         self.assertIsNone(actual)
@@ -560,7 +560,7 @@ class TestParsingFunctions(unittest.TestCase):
         src: dict = {'key': expected}
 
         # execute
-        actual = dig(src=src, path=['key'], post_processor=None)
+        actual = dig(src=src, path='key', post_processor=None)
 
         # assess
         self.assertEqual(actual, expected)
@@ -613,7 +613,7 @@ class TestParsingFunctions(unittest.TestCase):
         src: dict = {'a': 1, 'b': 2}
 
         # execute
-        actual = dig(src=src, path=['a'], pop=True, exp=int)
+        actual = dig(src=src, path='a', pop=True, exp=int)
 
         # assess
         self.assertEqual(actual, 1)
@@ -626,7 +626,7 @@ class TestParsingFunctions(unittest.TestCase):
         src: list = ['x', 'y', 'z']
 
         # execute
-        actual = dig(src=src, path=[1], pop=True, exp=str)
+        actual = dig(src=src, path=1, pop=True, exp=str)
 
         # assess
         self.assertEqual(actual, 'y')
@@ -638,7 +638,7 @@ class TestParsingFunctions(unittest.TestCase):
         src: dict = {'outer': {'inner': 42, 'keep': 99}}
 
         # execute
-        actual = dig(src=src, path=['outer', 'inner'], pop=True, exp=int)
+        actual = dig(src=src, path='outer.inner', pop=True, exp=int)
 
         # assess
         self.assertEqual(actual, 42)
@@ -651,11 +651,174 @@ class TestParsingFunctions(unittest.TestCase):
         src: dict = {'a': 1}
 
         # execute
-        actual = dig(src=src, path=['a'], pop=False, exp=int)
+        actual = dig(src=src, path='a', pop=False, exp=int)
 
         # assess
         self.assertEqual(actual, 1)
         self.assertIn('a', src)
+
+    # jmespath: simple expression string path
+    def test_should_get_value_with_jmespath_string_path(self):
+        # setup
+        src: dict = {'users': [{'name': 'Alice'}, {'name': 'Bob'}]}
+
+        # execute
+        actual = dig(src=src, path='users[1].name', exp=str)
+
+        # assess
+        self.assertEqual(actual, 'Bob')
+
+    # jmespath: wildcard projection, only expressible via a jmespath string
+    def test_should_get_values_with_jmespath_wildcard(self):
+        # setup
+        src: dict = {'users': [{'name': 'Alice'}, {'name': 'Bob'}]}
+
+        # execute
+        actual = dig(src=src, path='users[*].name', exp=list)
+
+        # assess
+        self.assertEqual(actual, ['Alice', 'Bob'])
+
+    # jmespath: a bare int path is treated as a single-segment path
+    def test_should_get_value_with_single_int_path(self):
+        # setup
+        src: list = ['a', 'b', 'c']
+
+        # execute
+        actual = dig(src=src, path=1, exp=str)
+
+        # assess
+        self.assertEqual(actual, 'b')
+
+    # jmespath: pop is supported for a simple (unambiguous) string path
+    def test_should_pop_with_jmespath_string_path(self):
+        # setup
+        src: dict = {'outer': {'inner': 42, 'keep': 99}}
+
+        # execute
+        actual = dig(src=src, path='outer.inner', pop=True, exp=int)
+
+        # assess
+        self.assertEqual(actual, 42)
+        self.assertNotIn('inner', src['outer'])
+        self.assertIn('keep', src['outer'])
+
+    # jmespath: pop is refused (not silently wrong) for an ambiguous filter expression
+    def test_should_refuse_pop_with_ambiguous_jmespath_filter(self):
+        # setup
+        src: dict = {'items': [{'id': 1}, {'id': 2}]}
+
+        # execute
+        actual = dig(src=src, path='items[?id==`2`].id', pop=True, exp=list)
+
+        # assess
+        self.assertEqual(actual, [2])
+        self.assertEqual(src, {'items': [{'id': 1}, {'id': 2}]})
+
+    # jmespath: keys with special characters need a quoted identifier in the expression
+    def test_should_get_value_with_quoted_identifier_for_special_characters(self):
+        # setup
+        src: dict = {'a-key': {'b': 'value'}}
+
+        # execute
+        actual = dig(src=src, path='"a-key".b', exp=str)
+
+        # assess
+        self.assertEqual(actual, 'value')
+
+    # an invalid path segment type raises instead of silently returning None
+    def test_should_raise_type_error_for_invalid_path_type(self):
+        # setup
+        src: dict = {'a': 1}
+
+        # execute/assess
+        with self.assertRaises(TypeError):
+            dig(src=src, path=3.14)
+
+    # fallback: path as a list of candidates tries each in order, first non-None wins
+    def test_should_use_first_matching_path_in_fallback_list(self):
+        # setup
+        src: dict = {'user': {'name': 'Alice'}}
+
+        # execute
+        actual = dig(src=src, path=['user.nickname', 'user.name'], exp=str)
+
+        # assess
+        self.assertEqual(actual, 'Alice')
+
+    # fallback: if every candidate misses, result is None
+    def test_should_return_none_when_no_fallback_path_matches(self):
+        # setup
+        src: dict = {'user': {'name': 'Alice'}}
+
+        # execute
+        actual = dig(src=src, path=['user.nickname', 'user.alias'], exp=str)
+
+        # assess
+        self.assertIsNone(actual)
+
+    # fallback: pop only removes the winning candidate's terminal key
+    def test_should_pop_only_the_winning_fallback_path(self):
+        # setup
+        src: dict = {'user': {'name': 'Alice', 'nickname': 'Ali'}}
+
+        # execute
+        actual = dig(src=src, path=['user.nickname', 'user.name'], pop=True, exp=str)
+
+        # assess
+        self.assertEqual(actual, 'Ali')
+        self.assertNotIn('nickname', src['user'])
+        self.assertIn('name', src['user'])
+
+    # dig_many: extract several fields, bypassing post-processing to get raw values
+    def test_should_extract_multiple_fields_with_dig_many(self):
+        # setup
+        src: dict = {'user': {'name': 'Alice', 'age': 30}}
+
+        # execute
+        actual = dig_many(src, paths={'name': 'user.name', 'age': 'user.age'}, post_processor=None)
+
+        # assess
+        self.assertEqual(actual, {'name': 'Alice', 'age': 30})
+
+    # dig_many: a per-key spec dict overrides the common kwargs for just that key
+    def test_should_override_kwargs_per_key_in_dig_many(self):
+        # setup
+        # 'age' is deliberately not a str, so it would fail the common exp=str
+        # validation unless its own spec's exp=int override actually takes effect
+        src: dict = {'user': {'name': 'Alice', 'age': 30}}
+
+        # execute
+        actual = dig_many(
+            src,
+            paths={
+                'name': 'user.name',
+                'age': {'path': 'user.age', 'exp': int},
+            },
+            exp=str,
+        )
+
+        # assess
+        self.assertEqual(actual, {'name': 'Alice', 'age': 30})
+        self.assertIsInstance(actual['age'], int)
+
+    # Digger: a bound path can be reused as a callable across multiple src objects
+    def test_should_reuse_digger_across_multiple_sources(self):
+        # setup
+        get_name = Digger(path='user.name', exp=str, default='')
+        records: list = [{'user': {'name': 'Alice'}}, {'user': {'name': 'Bob'}}]
+
+        # execute
+        actual = [get_name(record) for record in records]
+
+        # assess
+        self.assertEqual(actual, ['Alice', 'Bob'])
+
+    # Digger: an invalid jmespath expression fails at construction time, not first call
+    def test_should_fail_fast_on_invalid_digger_expression(self):
+        # execute/assess
+        with self.assertRaises(Exception):
+            Digger(path='user[..name')
 
 
 if __name__ == '__main__':
