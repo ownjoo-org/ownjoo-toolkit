@@ -2,7 +2,7 @@
 
 import os
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from oj_toolkit.console.terminal import (
     border_chars,
@@ -110,6 +110,50 @@ class TestDetectUnicodeSupport(unittest.TestCase):
         # Most Unix systems support xterm with Unicode
         # This will be platform-dependent
         self.assertIsInstance(result, bool)
+
+    # Regression: a Windows console defaulting to a codepage that can't encode
+    # box-drawing characters (e.g. cp1252) must not be reported as Unicode-capable,
+    # even though the platform/TERM checks above would otherwise let it through.
+    def test_should_disable_for_encoding_that_cannot_represent_box_chars(self):
+        # setup
+        mock_stdout = Mock()
+        mock_stdout.encoding = "cp1252"
+
+        # execute
+        with patch.dict(os.environ, {"NO_COLOR": "", "CI": "", "TERM": "xterm"}, clear=False):
+            with patch("oj_toolkit.console.terminal.sys.stdout", mock_stdout):
+                result = detect_unicode_support()
+
+        # assess
+        self.assertFalse(result)
+
+    def test_should_enable_for_utf8_encoding(self):
+        # setup
+        mock_stdout = Mock()
+        mock_stdout.encoding = "utf-8"
+
+        # execute
+        with patch.dict(os.environ, {"NO_COLOR": "", "CI": "", "TERM": "xterm"}, clear=False):
+            with patch("oj_toolkit.console.terminal.sys.stdout", mock_stdout):
+                result = detect_unicode_support()
+
+        # assess
+        self.assertTrue(result)
+
+    # stdout with no usable encoding (e.g. a captured/mocked stream) shouldn't be
+    # penalized -- there's nothing to verify either way, so it falls through to True
+    def test_should_enable_when_stdout_has_no_encoding(self):
+        # setup
+        mock_stdout = Mock()
+        mock_stdout.encoding = None
+
+        # execute
+        with patch.dict(os.environ, {"NO_COLOR": "", "CI": "", "TERM": "xterm"}, clear=False):
+            with patch("oj_toolkit.console.terminal.sys.stdout", mock_stdout):
+                result = detect_unicode_support()
+
+        # assess
+        self.assertTrue(result)
 
 
 class TestSelectStyle(unittest.TestCase):

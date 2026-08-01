@@ -684,6 +684,12 @@ else:
 
 Returns `True` if the terminal likely supports Unicode characters. Used internally to choose between ASCII and Unicode box/table borders.
 
+Checks `NO_COLOR`/`CI`/`TERM` env vars first, then verifies `sys.stdout.encoding` can actually
+encode a box-drawing character -- this catches Windows consoles that default to a codepage
+(`cp1252`, `cp437`, etc.) that can't, even though the platform/terminal is otherwise
+Unicode-capable. Set `PYTHONIOENCODING=utf-8` (or use Windows Terminal with a UTF-8 codepage)
+to get Unicode borders on Windows instead of the ASCII fallback.
+
 ### `parsing` Module
 
 #### `validate(v, exp=None, default=None, converter=None, validator=None, pattern=None, **kwargs)`

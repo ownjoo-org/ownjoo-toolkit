@@ -48,13 +48,18 @@ def detect_unicode_support() -> bool:
     """Detect if terminal supports Unicode characters.
 
     Checks environment variables and terminal type to determine if the terminal
-    can display Unicode characters (for pretty borders, etc.).
+    can display Unicode characters (for pretty borders, etc.), then verifies
+    sys.stdout's actual encoding can render them.
 
     Environment checks:
     - NO_COLOR: If set, disables colors/Unicode for accessibility
     - TERM: Terminal type (vt100, xterm, etc.)
     - CI: If in CI environment, assume Unicode support
-    - Platform: Windows console has limited Unicode, *nix terminals usually support it
+    - stdout encoding: Windows consoles commonly default to a codepage (cp1252,
+      cp437, etc.) that can't encode box-drawing characters even when the
+      platform/terminal is otherwise capable -- this is checked directly rather
+      than assumed from sys.platform, since PYTHONIOENCODING/chcp/Windows
+      Terminal all change what's actually possible independent of the OS.
 
     Returns:
         True if terminal likely supports Unicode, False otherwise.
@@ -78,19 +83,18 @@ def detect_unicode_support() -> bool:
     if term in ("dumb", "vt100", "vt220"):
         return False
 
-    # Windows console (cmd.exe, PowerShell) has limited Unicode support
-    # but modern versions and Windows Terminal support it
-    if sys.platform == "win32":
-        # Assume modern Windows (10+) or Windows Terminal supports Unicode
-        # Could be more conservative here if needed
+    # Verify stdout can actually encode a representative box-drawing character.
+    # Windows consoles commonly default to a codepage (cp1252, cp437, etc.) that
+    # can't, even when the platform/terminal is otherwise Unicode-capable.
+    try:
+        "─".encode(sys.stdout.encoding)
         return True
-
-    # *nix terminals typically support Unicode
-    if sys.platform in ("linux", "darwin"):
+    except UnicodeEncodeError:
+        return False
+    except (AttributeError, TypeError, LookupError):
+        # stdout has no usable encoding (e.g. a mock/capture stream in tests) --
+        # can't verify either way, so don't penalize it.
         return True
-
-    # Default: attempt Unicode
-    return True
 
 
 def select_style(
