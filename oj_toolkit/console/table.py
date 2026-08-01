@@ -49,7 +49,7 @@ class Table:  # pylint: disable=too-many-instance-attributes
             align: Default alignment for all columns. Default: 'left'.
         """
         self.headers = headers or []
-        self.columns = columns or 1
+        self.columns = columns or (len(self.headers) if self.headers else 1)
         self.style = select_style(style, "ascii", "rounded")
         self.padding = padding
         self.align = align

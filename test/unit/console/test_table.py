@@ -33,6 +33,25 @@ class TestTable(unittest.TestCase):
         self.assertIn("Alice", result)
         self.assertIn("+", result)
 
+    def test_should_auto_detect_columns_from_headers(self):
+        # setup
+        # Regression test: passing headers alone (no explicit columns) must
+        # render every header/column, per the constructor's own documented
+        # "auto-detect if None" behavior -- it previously silently fell back
+        # to a single column.
+        table = Table(headers=["ID", "Tool", "Description"], style="ascii")
+        table.add_row(1, "foo", "does a thing")
+
+        # execute
+        result = str(table)
+
+        # assess
+        self.assertIn("ID", result)
+        self.assertIn("Tool", result)
+        self.assertIn("Description", result)
+        self.assertIn("foo", result)
+        self.assertIn("does a thing", result)
+
     def test_should_add_multiple_rows(self):
         # setup
         table = Table(headers=["ID", "Status"], columns=2, style="ascii")
