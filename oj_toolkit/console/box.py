@@ -109,7 +109,11 @@ class Box:
         if self.title and tl != "+" and tl != " ":
             # Unicode title box: [TL] Title [TR]
             # For ASCII, just skip the title
-            title_space = inner_width - len(self.title) - 4
+            # (4 fixed chars around the title -- 2 spaces + tl + tr -- but tl/tr
+            # are outside inner_width, so only the 2 spaces come out of it here)
+            # visible_width, not len(), so an ANSI-colored title doesn't throw
+            # off the width math the same way plain len() would.
+            title_space = inner_width - visible_width(self.title) - 2
             if title_space > 0:
                 top_line = (
                     tl + " " + self.title + " " + (top * title_space) + tr

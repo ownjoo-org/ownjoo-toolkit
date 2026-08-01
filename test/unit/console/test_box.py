@@ -5,6 +5,8 @@ import unittest
 from unittest.mock import patch
 
 from oj_toolkit.console.box import Box, in_box
+from oj_toolkit.console.colors import Color
+from oj_toolkit.console.terminal import visible_width
 
 
 class TestBox(unittest.TestCase):
@@ -130,6 +132,38 @@ class TestBox(unittest.TestCase):
         # assess
         self.assertIn("Title", result)
         self.assertIn("Content", result)
+
+    def test_should_align_titled_border_width_with_content(self):
+        # setup
+        # Regression test: the titled top border was 2 characters shorter
+        # than the content lines and bottom border (off-by-4-instead-of-2 in
+        # title_space), producing a visibly ragged right edge.
+        box = Box(style="rounded", title="Disclaimer", padding=1)
+        box.add_line("A short line")
+        box.add_line("A rather longer line than the one above it")
+
+        # execute
+        lines = str(box).split("\n")
+
+        # assess
+        widths = {len(line) for line in lines}
+        self.assertEqual(len(widths), 1, f"inconsistent line widths: {lines}")
+
+    def test_should_align_colored_title_width_with_content(self):
+        # setup
+        # Regression test: title width math used plain len(), so an
+        # ANSI-colored title (escape codes count as 0 visible chars) would
+        # throw off the border width the same way the earlier bug did.
+        colored_title = Color.BOLD + Color.YELLOW + "Disclaimer" + Color.RESET
+        box = Box(style="rounded", title=colored_title, padding=1)
+        box.add_line("A line of content")
+
+        # execute
+        lines = str(box).split("\n")
+
+        # assess
+        widths = {visible_width(line) for line in lines}
+        self.assertEqual(len(widths), 1, f"inconsistent visible widths: {lines}")
 
     def test_should_respect_padding(self):
         # setup
