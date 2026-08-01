@@ -6,4 +6,3 @@ repos:
         entry: pylint
         language: system
         types: [python]
-        args: ['--disable=missing-module-docstring,logging-fstring-interpolation', '--max-line-length=120']

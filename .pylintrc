@@ -448,8 +448,11 @@ disable=raw-checker-failed,
         use-implicit-booleaness-not-comparison-to-zero,
         wrong-import-position,
         missing-function-docstring,
+        missing-module-docstring,
+        logging-fstring-interpolation,
         too-many-public-methods,
-        broad-exception-caught
+        broad-exception-caught,
+        duplicate-code
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
