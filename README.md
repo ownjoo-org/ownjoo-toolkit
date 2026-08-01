@@ -1,4 +1,4 @@
-# ownjoo-toolkit
+# oj-toolkit
 
 Centralized shared utilities library for all ownjoo-org projects. Provides battle-tested functions for type validation, data parsing, and progress logging.
 
@@ -152,11 +152,19 @@ fields = dig_many(
 # Bind a path once, reuse it against many objects
 get_name = Digger(path='name', exp=str, default='')
 [get_name(user) for user in data['users']]  # Returns: ['Alice', 'Bob']
+
+# Constrain a string result with a regex (checked via re.fullmatch after conversion)
+mac = dig({'device': {'mac': 'AA:BB:CC:DD:EE:FF'}}, path='device.mac', exp=str,
+          pattern=r'([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}')
+# Returns: 'AA:BB:CC:DD:EE:FF'
 ```
 
-> **Note:** `dig()`'s default `post_processor` (`validate()`) only accepts a value if you pass
-> `exp=<type>` -- without it, validation always fails and you get `default` back (`None` unless set).
-> Pass `exp=` for a real value, or `post_processor=None` to skip validation and get the raw match.
+> **Note:** if the path resolves to nothing (missing key/index, or `src` doesn't contain it),
+> `dig()`'s default `post_processor` (`validate()`) still runs and returns `default` (`None`
+> unless set) -- a missing path never silently drops `default` in favor of a bare `None`.
+> Passing no `exp=` means "accept any type, no isinstance check" -- not "always fail". Pass
+> `exp=<type>` to add a type check, or `post_processor=None` to bypass validation entirely and
+> get the raw match untouched.
 
 ### Logging Setup
 
@@ -678,16 +686,17 @@ Returns `True` if the terminal likely supports Unicode characters. Used internal
 
 ### `parsing` Module
 
-#### `validate(v, exp=None, default=None, converter=None, validator=None, **kwargs)`
+#### `validate(v, exp=None, default=None, converter=None, validator=None, pattern=None, **kwargs)`
 
 Generic validation utility that converts and validates a value.
 
 - **Parameters:**
   - `v` (Any): The value to validate
-  - `exp` (Type): Expected type. Enables automatic converter selection (list → str_to_list, datetime → get_datetime)
-  - `default` (Any): Return this if validation fails. Default: None
-  - `converter` (Callable): Custom converter function. Default: auto-selected based on exp
-  - `validator` (Callable): Custom validator function(result, exp, **kwargs) → bool. Default: isinstance check
+  - `exp` (Type): Expected type. Enables automatic converter selection (list → str_to_list, datetime → get_datetime). If `None`, no isinstance check is performed -- any type passes (see `validator` below)
+  - `default` (Any): Return this if validation fails, or `v` is missing/`None`. Default: None
+  - `converter` (Callable): Custom converter function. Default: auto-selected based on exp. Auto-selection is limited to `list`/`datetime` -- `bool`/`int`/`float`/etc. are pass-through unless you supply your own `converter=`
+  - `validator` (Callable): Custom validator function(result, exp, **kwargs) → bool. Default: isinstance check (`exp=None` always passes; a non-type `exp` is rejected rather than raising)
+  - `pattern` (str | re.Pattern): Optional regex checked via `re.fullmatch` against the result, but only when the result is a `str` -- ignored for other types. Applied after conversion/validation succeed; a mismatch falls back to `default`
   - `**kwargs`: Passed to converter and validator
 
 - **Returns:** Converted and validated value, or default if validation fails
@@ -698,6 +707,16 @@ Generic validation utility that converts and validates a value.
 # Auto-detect converter based on type
 numbers = validate('1,2,3', exp=list)  # Returns: ['1', '2', '3']
 dt = validate('2024-01-15T10:30:00', exp=datetime)  # Returns: datetime object
+
+# exp=bool/int/float do NOT auto-coerce strings -- pass converter= explicitly for that
+validate('42', exp=int)                    # Returns: None ('42' is a str, not an int)
+validate('42', exp=int, converter=int)     # Returns: 42
+
+# Regex-constrain a string result
+validate('AA:BB:CC:DD:EE:FF', exp=str, pattern=r'([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}')
+# Returns: 'AA:BB:CC:DD:EE:FF'
+validate('not-a-mac', exp=str, pattern=r'([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}', default='invalid')
+# Returns: 'invalid'
 
 # Custom converter and validator
 def to_upper(v, *args, **kwargs):
@@ -760,6 +779,12 @@ get_datetime('01/15/2024 10:30:00', format_str='%m/%d/%Y %H:%M:%S')  # Custom
 Extract and post-process a value from a nested data structure, using [jmespath](https://jmespath.org/)
 under the hood (`jmespath` is a required dependency).
 
+> **Compilation caching:** compiled jmespath expressions are cached in a process-global
+> `lru_cache(maxsize=256)`, keyed by the expression string. A bare `dig()` call already avoids
+> recompiling a repeated path -- this isn't a `Digger`-only optimization. The cache holds up to
+> 256 distinct expressions across the whole process (shared by every `dig()`/`Digger` caller),
+> LRU-evicted beyond that.
+
 - **Parameters:**
   - `src` (Mapping | Sequence): Data structure to navigate
   - `path` (int | str | list | None):
@@ -776,16 +801,18 @@ under the hood (`jmespath` is a required dependency).
     Pass `None` to skip post-processing and get the raw match.
   - `**kwargs`: Passed to `post_processor`
 
-- **Returns:** Post-processed value, or `None` if extraction fails, no candidate path matches, or
-  no post-processor is specified and nothing was found
+- **Returns:** Post-processed value. If extraction fails or no candidate path matches, the
+  post-processor (default `validate()`) still runs and returns `default` (`None` unless set) --
+  unless `post_processor=None`, in which case the raw (possibly missing/`None`) value is returned
+  untouched with no default substitution.
 
 > **Type checkers:** pass `exp=<type>` to get a precise `<type> | None` return type instead of `Any`
 > (`dig(data, path='...', exp=str)` type-checks as `str | None`). Passing `post_processor=None` types
 > as `Any` (raw, unvalidated value). A custom `post_processor` types as that callable's own return type.
 
-> **Passing no `exp`:** the default `validate()` post-processor only accepts a value when you give
-> it `exp=<type>` -- without one, validation always fails and you get `default` back (`None` unless
-> set). Either pass `exp=`, or `post_processor=None` to bypass validation entirely.
+> **Passing no `exp`:** the default `validate()` post-processor treats a missing `exp` as "accept
+> any type" -- it does not fail. Pass `exp=<type>` to add an isinstance check, or
+> `post_processor=None` to bypass validation entirely and get the raw match.
 
 **Example:**
 
@@ -819,6 +846,39 @@ names = dig(data, path='response.users[*].name', exp=list)
 name = dig(data, path=['response.users[0].display_name', 'response.users[0].name'], exp=str)
 # Returns: 'Alice'
 ```
+
+##### `dig()` Behavior Matrix
+
+Every row below is a real `dig()` call, backed by a passing unit test in
+`test/unit/parsing/test_parsing.py` -- the test name is the proof, not just a claim. This isn't
+every possible combination of kwargs (that cross product is huge and mostly redundant); it's one
+representative call per distinct decision point in `dig()`/`validate()`. `*(unset)*` means the
+kwarg wasn't passed (the function's own default applies); `--` means it isn't relevant to that row.
+
+| `src` | `path` | `exp` | `default` | `post_processor` | `pattern` | `validator` | `pop` | Result | Proven by |
+|---|---|---|---|---|---|---|---|---|---|
+| `{'first': 'a', 'second': ['blah']}` | `'second[0]'` (found) | `str` | *(unset)* | *(unset)* | *(unset)* | *(unset)* | `False` | `'blah'` | `test_should_get_value_from_dict` |
+| `['', ['blah']]` | `'[1][0]'` (found) | `str` | `''` | *(unset)* | *(unset)* | *(unset)* | `False` | `'blah'` (default unused -- value was valid) | `test_should_get_value_from_list` |
+| `{'a': {'b': 'value'}}` | `'x.y.z'` (missing) | `str` | `'default'` | *(unset)* | *(unset)* | *(unset)* | `False` | `'default'` | `test_should_return_default_on_missing_intermediate_key` |
+| `{'items': ['a', 'b', 'c']}` | `'items.invalid_index'` (missing) | `str` | `'default'` | *(unset)* | *(unset)* | *(unset)* | `False` | `'default'` | `test_should_return_default_when_accessing_list_with_string_key` |
+| `{'a': {'b': 'value'}}` | `'x.y.z'` (missing) | `str` | *(unset)* | *(unset)* | *(unset)* | *(unset)* | `False` | `None` (no default set) | `test_should_return_none_for_missing_path_with_exp_and_no_default` |
+| `{'a': {'b': 'c'}}` | `'x.y.z'` (missing) | *(unset)* | *(unset)* | *(unset)* | *(unset)* | *(unset)* | `False` | `None` (`exp=None` means "anything passes"; the found value already is `None`) | `test_should_handle_get_value_with_invalid_path` |
+| `{'key': 'blah'}` | `'key'` (found) | *(unset)* | *(unset)* | *(unset)* | *(unset)* | *(unset)* | `False` | `'blah'` (raw pass-through, no isinstance check) | `test_should_not_crash_when_exp_omitted_from_dig` |
+| `{'a': 'not-an-int'}` | `'a'` (found, wrong type) | `int` | *(unset)* | *(unset)* | *(unset)* | *(unset)* | `False` | `None` | `test_should_return_none_for_dig_result_type_mismatch` |
+| `{'a': 'not-an-int'}` | `'a'` (found, wrong type) | `int` | `-1` | *(unset)* | *(unset)* | *(unset)* | `False` | `-1` | `test_should_return_default_for_dig_result_type_mismatch` |
+| `{'a': 'blah'}` | `'a'` (found, non-type `exp`) | `'str'` | `'fallback'` | *(unset)* | *(unset)* | *(unset)* | `False` | `'fallback'` (garbage `exp` rejected, not raised) | `test_should_return_default_for_dig_with_non_type_expected_type` |
+| `{'key': 'raw_value'}` | `'key'` (found) | -- | -- | `None` | -- | -- | `False` | raw value, unvalidated | `test_should_return_raw_value_when_no_post_processor` |
+| `{'a': 1}` | `'missing'` (missing) | -- | `'default'` (ignored) | `None` | -- | -- | `False` | `None` (`default` is never consulted -- it's `validate()`'s kwarg, and `validate()` never runs) | `test_should_return_none_for_missing_path_with_no_post_processor` |
+| `{'response': {'users': [{'name': 'Alice'}, {'name': 'Bob'}]}}` | `'response.users'` (found) | -- | -- | `len` | -- | -- | `False` | `2` (custom post_processor gets the raw match) | `test_should_use_custom_post_processor_function` |
+| `'blah'` | `None` (src is the value) | `str` | *(unset)* | *(unset)* | *(unset)* | custom lambda | `False` | `'blah'` (custom validator overrides isinstance check) | `test_should_get_value_with_passed_validator` |
+| `'test_string'` | `None` (src is the value) | `str` | *(unset)* | *(unset)* | *(unset)* | *(unset)* | `False` | the src value itself | `test_should_post_process_source_when_path_is_none` |
+| `{'device': {'mac': 'AA:BB:CC:DD:EE:FF'}}` | `'device.mac'` (found) | `str` | *(unset)* | *(unset)* | matching regex | *(unset)* | `False` | matched MAC string | `test_should_validate_dig_result_with_matching_pattern` |
+| `{'device': {'mac': 'not-a-mac'}}` | `'device.mac'` (found) | `str` | `'invalid'` | *(unset)* | non-matching regex | *(unset)* | `False` | `'invalid'` | `test_should_return_default_for_dig_result_with_non_matching_pattern` |
+| `{'a': 1, 'b': 2}` | `'a'` (found) | `int` | *(unset)* | *(unset)* | -- | -- | `True` | `1`, and `'a'` removed from `src` | `test_should_pop_key_from_dict` |
+| `{'items': [{'id': 1}, {'id': 2}]}` | `'items[?id==\`2\`].id'` (found, ambiguous) | `list` | *(unset)* | *(unset)* | -- | -- | `True` (refused) | `[2]`, `src` left unmutated (pop refused + warning logged) | `test_should_refuse_pop_with_ambiguous_jmespath_filter` |
+| `{'user': {'name': 'Alice'}}` | `['user.nickname', 'user.name']` (fallback) | `str` | *(unset)* | *(unset)* | -- | -- | `False` | `'Alice'` (first candidate wins) | `test_should_use_first_matching_path_in_fallback_list` |
+| `{'user': {'name': 'Alice'}}` | `['user.nickname', 'user.alias']` (fallback, none match) | `str` | *(unset)* | *(unset)* | -- | -- | `False` | `None` | `test_should_return_none_when_no_fallback_path_matches` |
+| `{'user': {'name': 'Alice', 'nickname': 'Ali'}}` | `['user.nickname', 'user.name']` (fallback) | `str` | *(unset)* | *(unset)* | -- | -- | `True` | `'Ali'`, only the winning candidate's key removed | `test_should_pop_only_the_winning_fallback_path` |
 
 #### `dig_many(src, paths, **common_kwargs)`
 
@@ -854,7 +914,9 @@ fields = dig_many(
 
 A pre-bound, reusable `dig()` call. Validates/compiles the jmespath expression once at
 construction (failing fast on a bad expression instead of on first use), then can be called
-like a function against any number of `src` objects without repeating `path`/`exp`/kwargs.
+like a function against any number of `src` objects without repeating `path`/`exp`/kwargs. A
+string `pattern=` kwarg is likewise pre-compiled to a `re.Pattern` at construction time, so
+repeated calls don't re-compile the regex.
 
 **Example:**
 

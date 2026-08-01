@@ -104,12 +104,13 @@ def get_datetime(
     return result
 
 
-def validate(
+def validate(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         v: Any,
         exp: Type[T] = None,
         default: T | None = None,
         converter: Callable = None,
         validator: Callable | None = DEFAULT_VALIDATOR,
+        pattern: str | re.Pattern | None = None,
         **kwargs
 ) -> T | None:
     """Validate and optionally convert a value with a custom converter and validator.
@@ -117,11 +118,13 @@ def validate(
     This is a generic validation utility that:
     1. Converts the value using a converter function (with automatic selection for common types)
     2. Validates the result using a validator function
-    3. Returns the result if valid, otherwise returns the default value
+    3. Optionally checks the result against a regex pattern (str results only)
+    4. Returns the result if valid, otherwise returns the default value
 
     Args:
         v: The value to validate.
-        exp: Expected type of the value. If None, no type conversion is attempted.
+        exp: Expected type of the value. If None, no type conversion or isinstance check is
+            attempted (DEFAULT_VALIDATOR passes any value through unchanged).
         default: The value to return if validation fails or v is None. Default: None.
         converter: Custom converter function. If None, one is selected based on exp:
             - exp=list: uses str_to_list
@@ -129,6 +132,9 @@ def validate(
             - otherwise: uses DEFAULT_CONVERTER (pass-through)
         validator: Custom validator function(result, exp, **kwargs) -> bool.
             If None, uses DEFAULT_VALIDATOR (isinstance check).
+        pattern: Optional regex (string or compiled re.Pattern) the result must fully match
+            via re.fullmatch. Only applied when the (converted, validated) result is a str;
+            checked after conversion/validation succeed. On mismatch, returns default.
         **kwargs: Additional arguments passed to converter and validator functions.
 
     Returns:
@@ -142,6 +148,8 @@ def validate(
         0
         >>> validate('a,b,c', exp=list)
         ['a', 'b', 'c']
+        >>> validate('AA:BB:CC:DD:EE:FF', exp=str, pattern=r'([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}')
+        'AA:BB:CC:DD:EE:FF'
     """
     result: Any = v
     is_valid_result: bool = False
@@ -173,6 +181,11 @@ def validate(
         except Exception as exc_validation:
             logger.debug(f'Failed validation: {validator=}: {exc_validation=}', exc_info=True)
 
+    if is_valid_result and pattern is not None and isinstance(result, str):
+        compiled_pattern = pattern if isinstance(pattern, re.Pattern) else re.compile(pattern)
+        if not compiled_pattern.fullmatch(result):
+            is_valid_result = False
+
     return result if is_valid_result else default
 
 
@@ -192,7 +205,13 @@ _JMESPATH_TERMINAL_RE = re.compile(
 
 @lru_cache(maxsize=256)
 def _compile_jmespath(expr: str) -> Any:
-    """Compile (and cache) a jmespath expression string."""
+    """Compile (and cache) a jmespath expression string.
+
+    This cache is process-global and shared by every dig()/Digger call, keyed on the
+    expression string -- a bare dig() call already avoids recompiling a repeated path, not
+    just Digger. Capped at 256 distinct expressions (LRU-evicted); Digger's up-front compile
+    call at construction populates this same cache rather than maintaining its own.
+    """
     return jmespath.compile(expr)
 
 
@@ -337,10 +356,13 @@ def dig(
     else:
         result = _dig_expr(src, _path_to_expr(path), pop)
 
-    # Apply post-processor if result was found (not None) or if no result
-    if callable(post_processor) and result is not None:
+    # Always run the post-processor -- even on a missing/None result -- so it can apply
+    # its own default handling (validate() already treats v=None as failing an isinstance
+    # check and falls back to kwargs['default']). Skipping post_processor entirely is
+    # reserved for the explicit post_processor=None "give me the raw value" case.
+    if callable(post_processor):
         return post_processor(result, **kwargs)
-    return result  # return found value without post-processing
+    return result
 
 
 def dig_many(
@@ -382,7 +404,8 @@ class Digger:
 
     Validates/compiles the path up front (failing fast on a bad jmespath expression
     instead of on first use) and avoids re-passing the same path/exp/post_processor/kwargs
-    on every call.
+    on every call. A string `pattern=` kwarg is likewise pre-compiled to a re.Pattern here
+    so repeated calls don't re-compile the regex on every invocation.
 
     Example:
         >>> get_name = Digger(path='user.name', exp=str, default='')
@@ -399,6 +422,8 @@ class Digger:
         self.path = path
         self.pop = pop
         self.post_processor = post_processor
+        if isinstance(kwargs.get('pattern'), str):
+            kwargs['pattern'] = re.compile(kwargs['pattern'])
         self.kwargs = kwargs
         for candidate in (path if isinstance(path, (list, tuple)) else [path]):
             if candidate is not None:
