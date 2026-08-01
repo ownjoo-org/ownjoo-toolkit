@@ -4,9 +4,13 @@ import io
 import unittest
 from unittest.mock import patch
 
+import re
+
 from oj_toolkit.console.box import Box, in_box
 from oj_toolkit.console.colors import Color
 from oj_toolkit.console.terminal import visible_width
+
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 
 class TestBox(unittest.TestCase):
@@ -164,6 +168,37 @@ class TestBox(unittest.TestCase):
         # assess
         widths = {visible_width(line) for line in lines}
         self.assertEqual(len(widths), 1, f"inconsistent visible widths: {lines}")
+
+    def test_should_color_border_but_not_content(self):
+        # setup
+        box = Box(style="rounded", padding=1, border_color=Color.RED)
+        box.add_line("plain content")
+
+        # execute
+        result = str(box)
+
+        # assess
+        self.assertIn(Color.RED, result)
+        self.assertIn("plain content", _ANSI.sub("", result))
+        # padding spaces sit directly against "plain content" with no ANSI
+        # code in between -- i.e. the cell text itself was never colored.
+        self.assertIn(" plain content ", result)
+
+    def test_should_color_titled_border_without_recoloring_title(self):
+        # setup
+        colored_title = Color.BOLD + "Title" + Color.RESET
+        box = Box(style="rounded", title=colored_title, border_color=Color.RED, padding=1)
+        box.add_line("content")
+
+        # execute
+        lines = str(box).split("\n")
+
+        # assess
+        # widths must still line up with a colored border + colored title together
+        widths = {visible_width(line) for line in lines}
+        self.assertEqual(len(widths), 1, f"inconsistent visible widths: {lines}")
+        self.assertIn(Color.RED, lines[0])
+        self.assertIn(Color.BOLD, lines[0])
 
     def test_should_respect_padding(self):
         # setup

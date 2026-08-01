@@ -9,6 +9,7 @@ import sys
 from functools import wraps
 from typing import Callable, Iterator
 
+from oj_toolkit.console.colors import Color
 from oj_toolkit.console.terminal import (
     border_chars,
     pad_visible,
@@ -29,6 +30,9 @@ class Table:  # pylint: disable=too-many-instance-attributes
         columns: Number of columns (auto-detected if None).
         rows: List of row data.
         align: Default alignment ('left', 'right', 'center').
+        border_color: Optional ANSI color code applied to border/rule characters
+            only -- cell content (headers and row values) keeps whatever styling
+            the caller already applied to it.
     """
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
@@ -38,6 +42,7 @@ class Table:  # pylint: disable=too-many-instance-attributes
         style: str = "auto",
         padding: int = 1,
         align: str = "left",
+        border_color: str = "",
     ):
         """Initialize Table.
 
@@ -47,16 +52,25 @@ class Table:  # pylint: disable=too-many-instance-attributes
             style: Border style ('auto', 'ascii', etc.). Default: 'auto'.
             padding: Space padding inside cells. Default: 1.
             align: Default alignment for all columns. Default: 'left'.
+            border_color: Optional ANSI color code applied only to border/rule
+                characters -- e.g. Color.GREEN. Default: none.
         """
         self.headers = headers or []
         self.columns = columns or (len(self.headers) if self.headers else 1)
         self.style = select_style(style, "ascii", "rounded")
         self.padding = padding
         self.align = align
+        self.border_color = border_color
         self.rows = []
         self._column_widths = {}
         self._column_aligns = {}
         self._detected_headers = False
+
+    def _b(self, text: str) -> str:
+        """Wrap border-only text in border_color, if set."""
+        if not self.border_color:
+            return text
+        return self.border_color + text + Color.RESET
 
     def add_row(self, *values) -> "Table":
         """Add a single row to the table.
@@ -226,7 +240,7 @@ class Table:  # pylint: disable=too-many-instance-attributes
             if i < self.columns - 1:
                 segments.append(cross)
         segments.append(tr)
-        return "".join(segments)
+        return self._b("".join(segments))
 
     def _make_data_line(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self, row: list[str], widths: dict[int, int], left: str, right: str, col_sep: str = "│"
@@ -240,7 +254,7 @@ class Table:  # pylint: disable=too-many-instance-attributes
             right: Right border character
             col_sep: Column separator character (vertical)
         """
-        segments = [left]
+        segments = [self._b(left)]
         for i in range(self.columns):
             cell = row[i] if i < len(row) else ""
             width = widths.get(i, 10) - (self.padding * 2)
@@ -252,9 +266,9 @@ class Table:  # pylint: disable=too-many-instance-attributes
             segments.append(cell_content)
 
             if i < self.columns - 1:
-                segments.append(col_sep)
+                segments.append(self._b(col_sep))
 
-        segments.append(right)
+        segments.append(self._b(right))
         return "".join(segments)
 
     def out(self, sep: str = "", end: str = "\n", flush: bool = False) -> None:
@@ -283,6 +297,7 @@ def tabulated(
     columns: int | None = None,
     style: str = "auto",
     padding: int = 1,
+    border_color: str = "",
 ) -> Callable:
     """Decorator to wrap function output as a formatted table.
 
@@ -293,6 +308,7 @@ def tabulated(
         columns: Number of columns (auto-detect if None).
         style: Border style ('auto', 'ascii', etc.). Default: 'auto'.
         padding: Cell padding. Default: 1.
+        border_color: Optional ANSI color code for border/rule characters only.
 
     Returns:
         Decorator function.
@@ -313,7 +329,11 @@ def tabulated(
 
             # Create table and populate
             table = Table(
-                headers=headers, columns=columns, style=style, padding=padding
+                headers=headers,
+                columns=columns,
+                style=style,
+                padding=padding,
+                border_color=border_color,
             )
 
             # Handle different return types

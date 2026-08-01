@@ -8,6 +8,7 @@ import sys
 from functools import wraps
 from typing import Callable
 
+from oj_toolkit.console.colors import Color
 from oj_toolkit.console.terminal import (
     border_chars,
     pad_visible,
@@ -27,14 +28,18 @@ class Box:
         padding: Number of spaces inside the box.
         width: Optional fixed box width (auto-calculates if None).
         title: Optional title displayed in the top border.
+        border_color: Optional ANSI color code (e.g. Color.RED) applied to border
+            characters only -- title and content keep whatever styling the caller
+            already applied to them.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
         style: str = "auto",
         padding: int = 1,
         width: int | None = None,
         title: str | None = None,
+        border_color: str = "",
     ):
         """Initialize Box with style and configuration.
 
@@ -43,12 +48,21 @@ class Box:
             padding: Inner padding in spaces. Default: 1.
             width: Optional fixed width. Default: None (auto-calculate).
             title: Optional title for top border. Default: None.
+            border_color: Optional ANSI color code applied only to border
+                characters (corners, edges, fill) -- e.g. Color.RED. Default: none.
         """
         self.style = select_style(style, "ascii", "rounded")
         self.padding = padding
         self.width = width
         self.title = title
+        self.border_color = border_color
         self.lines = []
+
+    def _b(self, text: str) -> str:
+        """Wrap border-only text in border_color, if set."""
+        if not self.border_color:
+            return text
+        return self.border_color + text + Color.RESET
 
     def add_line(self, text: str) -> "Box":
         """Add a line of text to the box.
@@ -115,13 +129,17 @@ class Box:
             # off the width math the same way plain len() would.
             title_space = inner_width - visible_width(self.title) - 2
             if title_space > 0:
+                # Border segments colored individually so the title's own
+                # styling (if any) survives untouched in the middle.
                 top_line = (
-                    tl + " " + self.title + " " + (top * title_space) + tr
+                    self._b(tl + " ")
+                    + self.title
+                    + self._b(" " + (top * title_space) + tr)
                 )
             else:
-                top_line = tl + (top * inner_width) + tr
+                top_line = self._b(tl + (top * inner_width) + tr)
         else:
-            top_line = tl + (top * inner_width) + tr
+            top_line = self._b(tl + (top * inner_width) + tr)
 
         lines.append(top_line)
 
@@ -132,22 +150,20 @@ class Box:
                     line, inner_width - (self.padding * 2), align="left"
                 )
                 content = (
-                    left
+                    self._b(left)
                     + (" " * self.padding)
                     + padded
                     + (" " * self.padding)
-                    + right
+                    + self._b(right)
                 )
                 lines.append(content)
         else:
             # Empty box with just padding
-            padding_line = (
-                left + (" " * inner_width) + right
-            )
+            padding_line = self._b(left) + (" " * inner_width) + self._b(right)
             lines.append(padding_line)
 
         # Bottom border
-        bottom_line = bl + (bot * inner_width) + br
+        bottom_line = self._b(bl + (bot * inner_width) + br)
         lines.append(bottom_line)
 
         return "\n".join(lines)
@@ -178,6 +194,7 @@ def in_box(
     padding: int = 1,
     width: int | None = None,
     title: str | None = None,
+    border_color: str = "",
 ) -> Callable:
     """Decorator to wrap function output in a box.
 
@@ -190,6 +207,7 @@ def in_box(
         padding: Number of spaces to pad inside the box. Default: 1.
         width: Optional box width. If None, auto-calculates based on content.
         title: Optional title to display in the top border.
+        border_color: Optional ANSI color code for border characters only.
 
     Returns:
         Decorator function.
@@ -218,7 +236,13 @@ def in_box(
                 lines = [str(result)]
 
             # Create and populate box
-            box = Box(style=style, padding=padding, width=width, title=title)
+            box = Box(
+                style=style,
+                padding=padding,
+                width=width,
+                title=title,
+                border_color=border_color,
+            )
             for line in lines:
                 box.add_line(line)
 

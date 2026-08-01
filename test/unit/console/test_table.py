@@ -4,6 +4,7 @@ import io
 import unittest
 from unittest.mock import patch
 
+from oj_toolkit.console.colors import Color
 from oj_toolkit.console.table import Table, tabulated
 
 
@@ -51,6 +52,20 @@ class TestTable(unittest.TestCase):
         self.assertIn("Description", result)
         self.assertIn("foo", result)
         self.assertIn("does a thing", result)
+
+    def test_should_color_border_but_not_cell_content(self):
+        # setup
+        table = Table(headers=["Name"], style="ascii", border_color=Color.GREEN)
+        table.add_row("Alice")
+
+        # execute
+        result = str(table)
+
+        # assess
+        self.assertIn(Color.GREEN, result)
+        # padding spaces sit directly against "Alice" with no ANSI code in
+        # between -- i.e. the cell text itself was never colored.
+        self.assertIn(" Alice ", result)
 
     def test_should_add_multiple_rows(self):
         # setup
