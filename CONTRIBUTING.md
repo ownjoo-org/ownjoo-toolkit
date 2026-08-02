@@ -1,10 +1,10 @@
-# Contributing to ownjoo-org/utils
+# Contributing to ownjoo/utils
 
-Thank you for contributing to ownjoo-org/utils! This document provides guidelines for making contributions to this shared utilities library.
+Thank you for contributing to ownjoo/utils! This document provides guidelines for making contributions to this shared utilities library.
 
 ## Standards & Philosophy
 
-This repository follows the ownjoo-org standards and principles defined in [CLAUDE.md](https://github.com/ownjoo-org/claude/blob/main/CLAUDE.md).
+This repository follows the ownjoo standards and principles defined in [CLAUDE.md](https://github.com/ownjoo/claude/blob/main/CLAUDE.md).
 
 **Key principles:**
 
@@ -17,7 +17,7 @@ This repository follows the ownjoo-org standards and principles defined in [CLAU
 
 ## Before You Start
 
-1. **Read CLAUDE.md** — Understand the organization-wide standards at https://github.com/ownjoo-org/claude/blob/main/CLAUDE.md
+1. **Read CLAUDE.md** — Understand the organization-wide standards at https://github.com/ownjoo/claude/blob/main/CLAUDE.md
 2. **Check Existing Issues** — Your idea might already be discussed or planned
 3. **Open an Issue First** — For feature requests, discuss the approach before implementing
 
@@ -26,7 +26,7 @@ This repository follows the ownjoo-org standards and principles defined in [CLAU
 ### 1. Setup Your Environment
 
 ```bash
-git clone https://github.com/ownjoo-org/ownjoo-toolkit.git
+git clone https://github.com/ownjoo/ownjoo-toolkit.git
 cd ownjoo-toolkit
 pip install -e ".[dev]"
 ```
@@ -247,8 +247,8 @@ Any public API change must include thorough documentation and examples.
 
 - **Issues:** Use GitHub issues for bugs and feature requests
 - **Discussions:** Use GitHub discussions for questions and ideas
-- **Standards:** Refer to [CLAUDE.md](https://github.com/ownjoo-org/claude/blob/main/CLAUDE.md) for organization-wide guidelines
+- **Standards:** Refer to [CLAUDE.md](https://github.com/ownjoo/claude/blob/main/CLAUDE.md) for organization-wide guidelines
 
 ## License
 
-By contributing to ownjoo-org/utils, you agree that your contributions will be licensed under the same license as this project.
+By contributing to ownjoo/utils, you agree that your contributions will be licensed under the same license as this project.

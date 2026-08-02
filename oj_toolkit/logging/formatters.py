@@ -1,4 +1,4 @@
-"""Log formatters for ownjoo-org projects.
+"""Log formatters for ownjoo projects.
 
 Provides:
 - HumanFormatter: timestamped, human-readable (local dev)

@@ -1,6 +1,6 @@
-"""ownjoo-org shared utilities library.
+"""ownjoo shared utilities library.
 
-Centralized utilities for all ownjoo-org projects, including:
+Centralized utilities for all ownjoo projects, including:
 - Type validation and data parsing (parsing module)
 - Progress logging for generators (logging module)
 - Terminal and console output utilities (console module)

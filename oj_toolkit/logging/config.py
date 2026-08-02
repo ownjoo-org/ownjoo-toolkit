@@ -1,4 +1,4 @@
-"""Standardized logging configuration for ownjoo-org projects.
+"""Standardized logging configuration for ownjoo projects.
 
 Usage (at application entry point — Lambda handler, CLI main, FastAPI lifespan):
 

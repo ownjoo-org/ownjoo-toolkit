@@ -1,10 +1,10 @@
 # oj-toolkit
 
-Centralized shared utilities library for all ownjoo-org projects. Provides battle-tested functions for type validation, data parsing, and progress logging.
+Centralized shared utilities library for all ownjoo projects. Provides battle-tested functions for type validation, data parsing, and progress logging.
 
 ## Overview
 
-This library is the single source of truth for shared utilities across ownjoo-org projects. All projects should import common utilities from here rather than implementing their own versions.
+This library is the single source of truth for shared utilities across ownjoo projects. All projects should import common utilities from here rather than implementing their own versions.
 
 ### Modules
 
@@ -25,13 +25,13 @@ pip install oj-toolkit
 Or install from the repository:
 
 ```bash
-pip install git+https://github.com/ownjoo-org/ownjoo-toolkit.git
+pip install git+https://github.com/ownjoo/ownjoo-toolkit.git
 ```
 
 For local development:
 
 ```bash
-git clone https://github.com/ownjoo-org/ownjoo-toolkit.git
+git clone https://github.com/ownjoo/ownjoo-toolkit.git
 cd ownjoo-toolkit
 pip install -e ".[dev]"
 ```
@@ -1141,7 +1141,7 @@ async def process():
 ### Setup
 
 ```bash
-git clone https://github.com/ownjoo-org/ownjoo-toolkit.git
+git clone https://github.com/ownjoo/ownjoo-toolkit.git
 cd ownjoo-toolkit
 pip install -e ".[dev]"
 ```
@@ -1190,7 +1190,7 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
 
 ## Standards
 
-This library follows the ownjoo-org standards defined in [CLAUDE.md](https://github.com/ownjoo-org/claude/blob/main/CLAUDE.md).
+This library follows the ownjoo standards defined in [CLAUDE.md](https://github.com/ownjoo/claude/blob/main/CLAUDE.md).
 
 Key principles:
 - **Simplicity First** — Write the simplest code that solves the problem
@@ -1214,5 +1214,5 @@ All changes to the public API should include thorough documentation and example 
 ## Support
 
 For issues, questions, or contributions, please use the GitHub repository:
-- Issues: [github.com/ownjoo-org/ownjoo-toolkit/issues](https://github.com/ownjoo-org/ownjoo-toolkit/issues)
-- Pull Requests: [github.com/ownjoo-org/ownjoo-toolkit/pulls](https://github.com/ownjoo-org/ownjoo-toolkit/pulls)
+- Issues: [github.com/ownjoo/ownjoo-toolkit/issues](https://github.com/ownjoo/ownjoo-toolkit/issues)
+- Pull Requests: [github.com/ownjoo/ownjoo-toolkit/pulls](https://github.com/ownjoo/ownjoo-toolkit/pulls)

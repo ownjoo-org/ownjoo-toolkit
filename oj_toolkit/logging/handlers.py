@@ -1,4 +1,4 @@
-"""Asyncio-compatible logging handlers for ownjoo-org projects."""
+"""Asyncio-compatible logging handlers for ownjoo projects."""
 
 import asyncio
 import logging

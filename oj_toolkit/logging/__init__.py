@@ -1,4 +1,4 @@
-"""Standardized logging for ownjoo-org projects.
+"""Standardized logging for ownjoo projects.
 
 Configure once at application startup:
 
