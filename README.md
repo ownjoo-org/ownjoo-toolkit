@@ -1,6 +1,7 @@
 # oj-toolkit
 
 [![License](https://img.shields.io/github/license/ownjoo/ownjoo-toolkit)](LICENSE)
+[![Top language](https://img.shields.io/github/languages/top/ownjoo/ownjoo-toolkit)](https://github.com/ownjoo/ownjoo-toolkit) [![Stars](https://img.shields.io/github/stars/ownjoo/ownjoo-toolkit)](https://github.com/ownjoo/ownjoo-toolkit/stargazers) [![Forks](https://img.shields.io/github/forks/ownjoo/ownjoo-toolkit)](https://github.com/ownjoo/ownjoo-toolkit/forks) [![Issues](https://img.shields.io/github/issues/ownjoo/ownjoo-toolkit)](https://github.com/ownjoo/ownjoo-toolkit/issues) [![Pull requests](https://img.shields.io/github/issues-pr/ownjoo/ownjoo-toolkit)](https://github.com/ownjoo/ownjoo-toolkit/pulls)
 
 Centralized shared utilities library for all ownjoo projects. Provides battle-tested functions for type validation, data parsing, and progress logging.
 
