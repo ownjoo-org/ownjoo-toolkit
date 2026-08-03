@@ -1,5 +1,7 @@
 # oj-toolkit
 
+[![License](https://img.shields.io/github/license/ownjoo/ownjoo-toolkit)](LICENSE)
+
 Centralized shared utilities library for all ownjoo projects. Provides battle-tested functions for type validation, data parsing, and progress logging.
 
 ## Overview
